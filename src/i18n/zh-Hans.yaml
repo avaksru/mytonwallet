@@ -1,4 +1,4 @@
-$auth_intro: |
+﻿$auth_intro: |
   **安全地**存储加密货币，
   并享有**高速的**区块链交易体验。
 Create New Wallet: 创建新钱包
@@ -252,6 +252,7 @@ Confirm Staking: 确认质押
 View: 查看
 Stake More: 质押更多
 Staking: 质押中
+"Staking Earnings": Staking Earnings
 Currently Staked: 当前质押
 Total Staked: 总质押量
 Total Stakers: 总质押人数
@@ -288,6 +289,8 @@ Earning: 赚取中
 You can save this address for quick access while sending.: 您可以保存此地址以便在发送时快速访问。
 Stake Again: 再次质押
 Earned: 获得
+"Earned this month": Earned this month
+"Earned all time": Earned all time
 $staking_history_earned: 获得
 Select wallet to use on this app: 选择在此应用上使用的钱包
 Connect: 连接
@@ -1096,6 +1099,7 @@ Manage Wallets: 管理钱包
 i18n_dragToSort: 拖动以排序
 My: 我的
 All: 全部
+"All Wallets": All Wallets
 $view_accounts: 查看
 Add your first one to begin.: 添加您的第一个钱包以开始。
 You don’t have any wallets yet: 您还没有任何钱包

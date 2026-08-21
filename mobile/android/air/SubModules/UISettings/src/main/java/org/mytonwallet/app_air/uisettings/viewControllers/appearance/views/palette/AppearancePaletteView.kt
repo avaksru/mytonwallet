@@ -26,7 +26,11 @@ import org.mytonwallet.app_air.walletcore.WalletEvent
 import org.mytonwallet.app_air.walletcore.moshi.ApiNft
 
 @SuppressLint("ViewConstructor")
-class AppearancePaletteView(context: Context, private val showUnlockButton: Boolean) :
+class AppearancePaletteView(
+    context: Context,
+    private val showUnlockButton: Boolean,
+    private val allPalettesAvailable: Boolean = false
+) :
     WView(context),
     WThemedView {
     var onPaletteSelected:
@@ -202,7 +206,7 @@ class AppearancePaletteView(context: Context, private val showUnlockButton: Bool
             paletteItemViews.forEach { item ->
                 val itemIndex = item.nftAccentId
                 val isSelected = itemIndex == selectedIndex
-                val isLocked = itemIndex != null
+                val isLocked = !allPalettesAvailable && itemIndex != null
                 item.configure(
                     if (isLocked) {
                         AppearancePaletteItemView.State.LOCKED
@@ -218,8 +222,11 @@ class AppearancePaletteView(context: Context, private val showUnlockButton: Bool
         paletteItemViews.forEach { item ->
             val itemIndex = item.nftAccentId
             val isSelected = itemIndex == selectedIndex
-            val isLocked =
-                if (itemIndex == null) false else nftsByColorIndex[itemIndex].isNullOrEmpty()
+            val isLocked = if (allPalettesAvailable) {
+                false
+            } else {
+                itemIndex != null && nftsByColorIndex[itemIndex].isNullOrEmpty()
+            }
             item.configure(
                 if (isLocked) {
                     AppearancePaletteItemView.State.LOCKED

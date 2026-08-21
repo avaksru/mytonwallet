@@ -1,4 +1,4 @@
-$auth_intro: |-
+﻿$auth_intro: |-
   خزّن العملات المشفرة **بأمان** ونفّذ مدفوعات
   البلوكتشين **بسرعة الضوء**.
 Create New Wallet: إنشاء محفظة جديدة
@@ -251,6 +251,7 @@ Confirm Staking: تأكيد التوقيع المساحي
 View: منظر
 Stake More: حصة أكثر
 Staking: التوقيع المساحي
+"Staking Earnings": Staking Earnings
 Currently Staked: راهنة حاليا
 Total Staked: إجمالي الرهان
 Total Stakers: مجموع ستيكرز
@@ -289,6 +290,8 @@ Unexpected: خطأ غير متوقع
 You can save this address for quick access while sending.: يمكنك حفظ هذا العنوان للوصول إليه بسرعة أثناء الإرسال.
 Stake Again: حصة مرة أخرى
 Earned: حصل
+"Earned this month": Earned this month
+"Earned all time": Earned all time
 $staking_history_earned: حصل
 Select wallet to use on this app: حدد المحفظة لاستخدامها في هذا التطبيق
 Connect: يتصل
@@ -1097,6 +1100,7 @@ Manage Wallets: إدارة المحافظ
 i18n_dragToSort: اسحب للفرز
 My: لي
 All: الجميع
+"All Wallets": All Wallets
 $view_accounts: منظر
 Add your first one to begin.: أضف أول واحد للبدء.
 You don’t have any wallets yet: ليس لديك أي محافظ حتى الآن

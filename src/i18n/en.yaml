@@ -1,4 +1,4 @@
-$auth_intro: |
+﻿$auth_intro: |
   **Securely** store crypto and make blockchain
   payments at the **speed of light**.
 Create New Wallet: Create New Wallet
@@ -249,6 +249,7 @@ Confirm Staking: Confirm Staking
 View: View
 Stake More: Stake More
 Staking: Staking
+"Staking Earnings": Staking Earnings
 Currently Staked: Currently Staked
 Total Staked: Total Staked
 Total Stakers: Total Stakers
@@ -287,6 +288,8 @@ Unexpected: Unexpected error
 You can save this address for quick access while sending.: You can save this address for quick access while sending.
 Stake Again: Stake Again
 Earned: Earned
+"Earned this month": Earned this month
+"Earned all time": Earned all time
 $staking_history_earned: Earned
 Select wallet to use on this app: Select wallet to use on this app
 Connect: Connect
@@ -1131,6 +1134,7 @@ Manage Wallets: Manage Wallets
 i18n_dragToSort: Drag to sort
 My: My
 All: All
+"All Wallets": All Wallets
 $view_accounts: View
 Add your first one to begin.: Add your first one to begin.
 You don’t have any wallets yet: You don’t have any wallets yet

@@ -1,4 +1,4 @@
-$auth_intro: |
+﻿$auth_intro: |
   **Bezpiecznie** przechowuj kryptowaluty
   i dokonuj płatności blockchain
   z **prędkością światła**.
@@ -256,6 +256,7 @@ Confirm Staking: Potwierdź staking
 View: Widok
 Stake More: Zastaw więcej
 Staking: Staking
+"Staking Earnings": Staking Earnings
 Currently Staked: Obecnie zastawione
 Total Staked: Łącznie zastakowane
 Total Stakers: Liczba stakujących
@@ -293,6 +294,8 @@ Unexpected: Nieoczekiwany
 You can save this address for quick access while sending.: Możesz zapisać ten adres, aby szybko się do niego dostać podczas wysyłania.
 Stake Again: Zastaw ponownie
 Earned: Zarobione
+"Earned this month": Earned this month
+"Earned all time": Earned all time
 $staking_history_earned: Zarobione
 Select wallet to use on this app: Wybierz portfel, którego chcesz używać w tej aplikacji
 Connect: Połącz
@@ -1126,6 +1129,7 @@ Manage Wallets: Zarządzaj portfelami
 i18n_dragToSort: Przeciągnij, aby posortować
 My: Mój
 All: Wszystkie
+"All Wallets": All Wallets
 $view_accounts: Zobacz
 Add your first one to begin.: Dodaj swój pierwszy portfel, aby rozpocząć.
 You don’t have any wallets yet: Nie masz jeszcze żadnych portfeli

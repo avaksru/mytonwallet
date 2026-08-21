@@ -1,4 +1,4 @@
-$auth_intro: |
+﻿$auth_intro: |
   **Sicher** Krypto speichern
   und Blockchain-Zahlungen mit der
   **Geschwindigkeit des Lichts** durchführen.
@@ -254,6 +254,7 @@ Confirm Staking: Staking bestätigen
 View: Anzeigen
 Stake More: Mehr staken
 Staking: Staking
+"Staking Earnings": Staking Earnings
 Currently Staked: Derzeit gestakt
 Total Staked: Gesamt gestaked
 Total Stakers: Anzahl der Staker
@@ -291,6 +292,8 @@ Unexpected: Unerwarteter Fehler
 You can save this address for quick access while sending.: Sie können diese Adresse speichern, um schnellen Zugriff beim Senden zu haben.
 Stake Again: Erneut staken
 Earned: Verdient
+"Earned this month": Earned this month
+"Earned all time": Earned all time
 $staking_history_earned: Verdient
 Select wallet to use on this app: Wählen Sie die Brieftasche aus, die Sie für diese App verwenden möchten.
 Connect: Verbinden
@@ -1106,6 +1109,7 @@ Manage Wallets: Wallets verwalten
 i18n_dragToSort: Zum Sortieren ziehen
 My: Mein
 All: Alle
+"All Wallets": All Wallets
 $view_accounts: Anzeigen
 Add your first one to begin.: Fügen Sie Ihr erstes Wallet hinzu, um zu beginnen.
 You don’t have any wallets yet: Sie haben noch keine Wallets

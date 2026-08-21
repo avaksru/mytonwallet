@@ -1,4 +1,4 @@
-$auth_intro: |
+﻿$auth_intro: |
   **Безпечно** зберігайте криптовалюту і
   здійснюйте платежі в блокчейні
   **зі швидкістю світла**.
@@ -258,6 +258,7 @@ Confirm Staking: Підтвердити стейкінг
 View: Огляд
 Stake More: Додати
 Staking: Стейкінг
+"Staking Earnings": Staking Earnings
 Currently Staked: Поточний депозит
 Total Staked: Усього в стейкінгу
 Total Stakers: Усього стейкерів
@@ -294,6 +295,8 @@ Earning: Стейкінг
 You can save this address for quick access while sending.: Ви можете зберегти цю адресу для швидкого доступу під час надсилання.
 Stake Again: Повторити депозит
 Earned: Зароблено
+"Earned this month": Earned this month
+"Earned all time": Earned all time
 $staking_history_earned: Зароблено
 Select wallet to use on this app: Виберіть гаманець для використання в цій програмі
 Connect: Підключити
@@ -1122,6 +1125,7 @@ Manage Wallets: Керування гаманцями
 i18n_dragToSort: Перетягніть для сортування
 My: Мої
 All: Усі
+"All Wallets": All Wallets
 $view_accounts: Переглянути
 Add your first one to begin.: Додайте свій перший гаманець, щоб почати.
 You don’t have any wallets yet: У вас ще немає гаманців

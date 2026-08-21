@@ -1,4 +1,4 @@
-$auth_intro: |
+﻿$auth_intro: |
   เก็บคริปโต **อย่างปลอดภัย**
   และ ชำระผ่านบล็อกเชน
   ด้วย **ความเร็วแสง**.
@@ -254,6 +254,7 @@ Confirm Staking: ยืนยันการสเต็ก
 View: ดู
 Stake More: สเต็กเพิ่มเติม
 Staking: สเต็ก
+"Staking Earnings": Staking Earnings
 Currently Staked: ทรัพย์สินที่สเต็กปัจจุบัน
 Total Staked: สเตคทั้งหมด
 Total Stakers: จำนวนผู้สเตคทั้งหมด
@@ -291,6 +292,8 @@ Unexpected: เกิดข้อผิดพลาดที่ไม่คา�
 You can save this address for quick access while sending.: คุณสามารถบันทึกที่อยู่บัญชีนี้ไว้ได้เพื่อเข้าถึงได้ง่ายขึ้นเมื่อทำการส่ง.
 Stake Again: สเต็กอีกครั้ง
 Earned: ได้รับแล้ว
+"Earned this month": Earned this month
+"Earned all time": Earned all time
 $staking_history_earned: ได้รับแล้ว
 Select wallet to use on this app: เลือกกระเป๋าเงินที่จะใช้กับแอปนี้
 Connect: เชื่อมต่อ
@@ -1096,6 +1099,7 @@ Manage Wallets: จัดการวอลเล็ต
 i18n_dragToSort: ลากเพื่อจัดเรียง
 My: ของฉัน
 All: ทั้งหมด
+"All Wallets": All Wallets
 $view_accounts: ดู
 Add your first one to begin.: เพิ่มวอลเล็ตแรกของคุณเพื่อเริ่มต้น
 You don’t have any wallets yet: คุณยังไม่มีวอลเล็ต

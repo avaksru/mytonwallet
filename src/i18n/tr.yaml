@@ -1,4 +1,4 @@
-$auth_intro: |
+﻿$auth_intro: |
   Kriptolarınızı **güvenle** saklayın
   ve blockchain ödemelerinizi
   **ışık hızında** gerçekleştirin.
@@ -255,6 +255,7 @@ Confirm Staking: Staking işlemini onayla
 View: Görüntüle
 Stake More: Daha fazla stake edin
 Staking: Staking
+"Staking Earnings": Staking Earnings
 Currently Staked: Güncel stake miktarı
 Total Staked: Toplam Stake
 Total Stakers: Toplam Staker
@@ -291,6 +292,8 @@ Unexpected: Beklenmedik hata
 You can save this address for quick access while sending.: Gönderirken hızlı erişim için bu adresi kaydedebilirsiniz.
 Stake Again: Yeniden stake edin
 Earned: Kazanıldı
+"Earned this month": Earned this month
+"Earned all time": Earned all time
 $staking_history_earned: Kazanıldı
 Select wallet to use on this app: Bu uygulama üzerinde kullanılacak cüzdanı seçin
 Connect: Bağlan
@@ -1101,6 +1104,7 @@ Manage Wallets: Cüzdanları yönet
 i18n_dragToSort: Sıralamak için sürükle
 My: Benim
 All: Tümü
+"All Wallets": All Wallets
 $view_accounts: Görüntüle
 Add your first one to begin.: Başlamak için ilk cüzdanınızı ekleyin.
 You don’t have any wallets yet: Henüz hiç cüzdanınız yok

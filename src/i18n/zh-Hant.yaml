@@ -1,4 +1,4 @@
-$auth_intro: |
+﻿$auth_intro: |
   **安全的**儲存加密貨幣，
   並享有**光速的**區塊鏈支付速度。
 Create New Wallet: 創建新錢包
@@ -252,6 +252,7 @@ Confirm Staking: 確認質押
 View: 查看
 Stake More: 繼續質押
 Staking: 質押中
+"Staking Earnings": Staking Earnings
 Currently Staked: 目前質押數量
 Total Staked: 總質押量
 Total Stakers: 總質押人數
@@ -288,6 +289,8 @@ Earning: 賺取中
 You can save this address for quick access while sending.: 您可以保存此地址以便在發送時快速訪問。
 Stake Again: 再次質押
 Earned: 獲得
+"Earned this month": Earned this month
+"Earned all time": Earned all time
 $staking_history_earned: 獲得
 Select wallet to use on this app: 選擇要在此應用上使用的錢包
 Connect: 連接
@@ -1096,6 +1099,7 @@ Manage Wallets: 管理錢包
 i18n_dragToSort: 拖曳以排序
 My: 我的
 All: 全部
+"All Wallets": All Wallets
 $view_accounts: 查看
 Add your first one to begin.: 新增您的第一個錢包以開始。
 You don’t have any wallets yet: 您還沒有任何錢包

@@ -17,9 +17,11 @@ import org.mytonwallet.app_air.uicomponents.base.WViewControllerWithModelStore
 import org.mytonwallet.app_air.uicomponents.extensions.dp
 import org.mytonwallet.app_air.uicomponents.extensions.setPaddingLocalized
 import org.mytonwallet.app_air.uicomponents.helpers.WFont
+import org.mytonwallet.app_air.uicomponents.helpers.typeface
 import org.mytonwallet.app_air.uicomponents.widgets.WButton
 import org.mytonwallet.app_air.uicomponents.widgets.WLabel
 import org.mytonwallet.app_air.uicomponents.widgets.WScrollView
+import org.mytonwallet.app_air.uicomponents.widgets.balance.WBalanceView
 import org.mytonwallet.app_air.uicomponents.widgets.segmentedControlGroup.WSegmentedControlGroup
 import org.mytonwallet.app_air.uicomponents.widgets.setBackgroundColor
 import org.mytonwallet.app_air.uisettings.viewControllers.baseCurrency.BaseCurrencyVC
@@ -29,6 +31,7 @@ import org.mytonwallet.app_air.walletbasecontext.theme.ViewConstants
 import org.mytonwallet.app_air.walletbasecontext.theme.WColor
 import org.mytonwallet.app_air.walletbasecontext.theme.color
 import org.mytonwallet.app_air.walletbasecontext.utils.MHistoryTimePeriod
+import org.mytonwallet.app_air.walletbasecontext.utils.toBigInteger
 import org.mytonwallet.app_air.walletbasecontext.utils.toString
 import org.mytonwallet.app_air.walletcore.WalletCore
 
@@ -63,11 +66,17 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
         }
     }
 
-    private val balanceLabel by lazy {
-        WLabel(context).apply {
-            setStyle(34f, WFont.Bold)
-            setTextColor(WColor.PrimaryText.color)
-            gravity = Gravity.CENTER_HORIZONTAL
+    private val balanceView by lazy {
+        WBalanceView(context).apply {
+            typeface = WFont.Bold.typeface
+            primaryColor = WColor.PrimaryText.color
+            secondaryColor = WColor.PrimaryText.color
+            primarySize = 34f
+            decimalsSize = 28f
+            currencySize = 30f
+            smartDecimalsAlpha = true
+            reducedDecimalsAlpha = 191
+            smartDecimalsColor = false
         }
     }
 
@@ -83,7 +92,8 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
             PERIODS.forEach { period ->
                 addView(
                     WLabel(context).apply {
-                        layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+                        layoutParams =
+                            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
                         setStyle(14f)
                         text = period.localized
                         gravity = Gravity.CENTER
@@ -148,58 +158,95 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
                 24.dp
             )
 
-            addView(titleLabel, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ))
-            addView(balanceLabel, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 12.dp })
-            addView(changeLabel, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 8.dp })
-            addView(periodSelector, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                40.dp
-            ).apply {
-                topMargin = 24.dp
-                bottomMargin = 32.dp
-            })
+            addView(
+                titleLabel,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            )
+            addView(
+                balanceView,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = 12.dp }
+            )
+            addView(
+                changeLabel,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = 8.dp }
+            )
+            addView(
+                periodSelector,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    40.dp
+                ).apply {
+                    topMargin = 24.dp
+                    bottomMargin = 32.dp
+                }
+            )
 
             addStakingSection(this)
         }
         WScrollView(WeakReference(this)).apply {
-            addView(content, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            addView(
+                content,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
         }
     }
 
     private fun addStakingSection(container: LinearLayout) {
-        container.addView(stakingTitleLabel, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 16.dp })
+        container.addView(
+            stakingTitleLabel,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 16.dp }
+        )
 
         val monthRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
-            addView(stakingMonthLabel, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-            addView(stakingMonthValueLabel, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(
+                stakingMonthLabel,
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            )
+            addView(
+                stakingMonthValueLabel,
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            )
         }
-        container.addView(monthRow, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 12.dp })
+        container.addView(
+            monthRow,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 12.dp }
+        )
 
         val allTimeRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
-            addView(stakingAllTimeLabel, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-            addView(stakingAllTimeValueLabel, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(
+                stakingAllTimeLabel,
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            )
+            addView(
+                stakingAllTimeValueLabel,
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            )
         }
-        container.addView(allTimeRow, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ))
+        container.addView(
+            allTimeRow,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
     }
 
     override fun setupViews() {
@@ -213,7 +260,11 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
         )
         updateCurrencyButton()
 
-        view.addView(scrollView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        view.addView(
+            scrollView,
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
 
         viewModel.stateFlow
             .onEach { bindState(it) }
@@ -232,9 +283,22 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
 
     private fun bindState(state: AllUiState) {
         updateCurrencyButton()
-        periodSelector.setSelectedIndex(PERIODS.indexOf(state.selectedPeriod), shouldAnimate = false)
+        periodSelector.setSelectedIndex(
+            PERIODS.indexOf(state.selectedPeriod),
+            shouldAnimate = false
+        )
 
-        balanceLabel.text = formatCurrency(state.totalBalance ?: 0.0, hideIfZero = state.totalBalance == null)
+        val baseCurrency = WalletCore.baseCurrency
+        balanceView.animateText(
+            WBalanceView.AnimateConfig(
+                amount = state.totalBalance?.toBigInteger(baseCurrency.decimalsCount),
+                decimals = baseCurrency.decimalsCount,
+                currency = baseCurrency.sign,
+                animated = false,
+                setInstantly = true,
+                forceCurrencyToRight = LocaleController.isRTL
+            )
+        )
 
         val changeAbs = state.balanceChangeAbs
         val changePct = state.balanceChangePct
@@ -252,8 +316,10 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
             changeLabel.text = ""
         }
 
-        stakingMonthValueLabel.text = formatCurrency(state.stakingMonth ?: 0.0, hideIfZero = state.stakingMonth == null)
-        stakingAllTimeValueLabel.text = formatCurrency(state.stakingAllTime ?: 0.0, hideIfZero = state.stakingAllTime == null)
+        stakingMonthValueLabel.text =
+            formatCurrency(state.stakingMonth ?: 0.0, hideIfZero = state.stakingMonth == null)
+        stakingAllTimeValueLabel.text =
+            formatCurrency(state.stakingAllTime ?: 0.0, hideIfZero = state.stakingAllTime == null)
     }
 
     private fun updateCurrencyButton() {
@@ -274,7 +340,7 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
 
     private fun formatPercent(value: Double): String {
         val sign = if (value >= 0) "+" else ""
-        return "${sign}%.2f%%".format(value)
+        return "$sign%.2f%%".format(value)
     }
 
     companion object {

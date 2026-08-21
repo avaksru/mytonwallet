@@ -28,7 +28,9 @@ import org.mytonwallet.app_air.walletcore.stores.BalanceStore
 import org.mytonwallet.app_air.walletcore.stores.StakingStore
 import org.mytonwallet.app_air.walletcore.stores.TokenStore
 
-class AllVM : ViewModel(), WalletCore.EventObserver {
+class AllVM :
+    ViewModel(),
+    WalletCore.EventObserver {
 
     private val _stateFlow = MutableStateFlow(AllUiState())
     val stateFlow: StateFlow<AllUiState> = _stateFlow.asStateFlow()
@@ -127,8 +129,11 @@ class AllVM : ViewModel(), WalletCore.EventObserver {
                         response?.points?.mapNotNull { point ->
                             val timestamp = point.getOrNull(0)?.toLong()
                             val value = point.getOrNull(1)
-                            if (timestamp != null && value != null) timestamp to value
-                            else null
+                            if (timestamp != null && value != null) {
+                                timestamp to value
+                            } else {
+                                null
+                            }
                         }?.let { responses.addAll(it) }
                     } catch (_: CancellationException) {
                         throw CancellationException()
@@ -145,7 +150,13 @@ class AllVM : ViewModel(), WalletCore.EventObserver {
 
                 val firstValue: Double? = aggregated.values.firstOrNull()
                 val lastValue: Double? = aggregated.values.lastOrNull()
-                val change = if (firstValue != null && lastValue != null) lastValue - firstValue else null
+                val change = if (firstValue != null &&
+                    lastValue != null
+                ) {
+                    lastValue - firstValue
+                } else {
+                    null
+                }
                 val pct = calculatePercentChange(firstValue, lastValue)
 
                 _stateFlow.value = _stateFlow.value.copy(
@@ -223,9 +234,9 @@ class AllVM : ViewModel(), WalletCore.EventObserver {
         }
     }
 
-    private fun MAccount.walletAddresses(): List<String> {
-        return byChain.values.map { it.address }.distinct().filter { it.isNotBlank() }
-    }
+    private fun MAccount.walletAddresses(): List<String> = byChain.values.map {
+        it.address
+    }.distinct().filter { it.isNotBlank() }
 
     private fun BigInteger.toBaseCurrencyValue(tokenSlug: String): Double? {
         val token = TokenStore.getToken(tokenSlug) ?: return null

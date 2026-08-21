@@ -215,7 +215,11 @@ class WalletCustomizationVC private constructor(
     }
 
     private val appPaletteView: AppearancePaletteView by lazy {
-        AppearancePaletteView(context, showUnlockButton = false).apply {
+        AppearancePaletteView(
+            context,
+            showUnlockButton = false,
+            allPalettesAvailable = true
+        ).apply {
             onPaletteSelected = { accountId, nftAccentId, state, nft ->
                 when (state) {
                     AppearancePaletteItemView.State.LOCKED -> {

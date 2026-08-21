@@ -1,4 +1,4 @@
-$auth_intro: |
+﻿$auth_intro: |
   دارایی‌های رمزارزی را **به‌صورت امن** ذخیره کنید و پرداخت‌های بلاک‌چینی را
   **با سرعت نور** انجام دهید.
 Create New Wallet: ساخت کیف پول جدید
@@ -249,6 +249,7 @@ Confirm Staking: تأیید استیکینگ
 View: مشاهده
 Stake More: استیک بیشتر
 Staking: استیکینگ
+"Staking Earnings": Staking Earnings
 Currently Staked: استیک‌شده فعلی
 Total Staked: مجموع استیک‌شده
 Total Stakers: مجموع استیک‌کنندگان
@@ -287,6 +288,8 @@ Unexpected: خطای غیرمنتظره
 You can save this address for quick access while sending.: می‌توانید این آدرس را برای دسترسی سریع هنگام ارسال ذخیره کنید.
 Stake Again: استیک دوباره
 Earned: کسب‌شده
+"Earned this month": Earned this month
+"Earned all time": Earned all time
 $staking_history_earned: کسب‌شده
 Select wallet to use on this app: کیف پولی را برای استفاده در این اپلیکیشن انتخاب کنید
 Connect: اتصال
@@ -1116,6 +1119,7 @@ Manage Wallets: مدیریت کیف پول‌ها
 i18n_dragToSort: برای مرتب‌سازی بکشید
 My: من
 All: همه
+"All Wallets": All Wallets
 $view_accounts: مشاهده
 Add your first one to begin.: برای شروع اولین مورد را اضافه کنید.
 You don’t have any wallets yet: شما هنوز هیچ کیف پولی ندارید
