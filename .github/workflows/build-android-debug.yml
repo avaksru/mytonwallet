@@ -64,6 +64,30 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x mobile/android/gradlew
 
+      # Release APKs must be signed or Android refuses to install them with
+      # "package invalid/corrupted". The debug workflow does not use the release
+      # signing secrets, so we sign release builds with the standard Android
+      # debug keystore. This keeps artifacts installable for testing while
+      # leaving production fastlane builds untouched.
+      - name: Prepare release signing keystore
+        if: github.event.inputs.build_type == 'release'
+        run: |
+          KEYSTORE_DIR="$HOME/.android"
+          KEYSTORE_FILE="$KEYSTORE_DIR/debug.keystore"
+          mkdir -p "$KEYSTORE_DIR"
+          if [ ! -f "$KEYSTORE_FILE" ]; then
+            keytool -genkey \
+              -v \
+              -keystore "$KEYSTORE_FILE" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
       - name: Build APK
         run: |
           cd mobile/android
@@ -71,7 +95,15 @@ jobs:
           ENV_CAP=$(printf '%s' "$APP_ENV" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')
           TYPE_CAP=$(printf '%s' "${{ github.event.inputs.build_type }}" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')
           echo "Building assemble${BRAND_CAP}${ENV_CAP}${TYPE_CAP}"
-          ./gradlew "assemble${BRAND_CAP}${ENV_CAP}${TYPE_CAP}"
+          if [ "${{ github.event.inputs.build_type }}" == "release" ]; then
+            ./gradlew "assemble${BRAND_CAP}${ENV_CAP}${TYPE_CAP}" \
+              -Pandroid.injected.signing.store.file="$HOME/.android/debug.keystore" \
+              -Pandroid.injected.signing.store.password=android \
+              -Pandroid.injected.signing.key.alias=androiddebugkey \
+              -Pandroid.injected.signing.key.password=android
+          else
+            ./gradlew "assemble${BRAND_CAP}${ENV_CAP}${TYPE_CAP}"
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
