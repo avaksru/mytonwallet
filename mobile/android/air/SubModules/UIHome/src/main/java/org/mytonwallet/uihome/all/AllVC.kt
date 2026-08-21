@@ -15,6 +15,7 @@ import java.lang.ref.WeakReference
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.mytonwallet.app_air.icons.R
+import org.mytonwallet.app_air.uicomponents.base.WNavigationBar
 import org.mytonwallet.app_air.uicomponents.base.WViewControllerWithModelStore
 import org.mytonwallet.app_air.uicomponents.extensions.dp
 import org.mytonwallet.app_air.uicomponents.extensions.setPaddingLocalized
@@ -55,15 +56,6 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
 
     private val viewModel: AllVM by lazy {
         ViewModelProvider(this)[AllVM::class.java]
-    }
-
-    private val titleLabel by lazy {
-        WLabel(context).apply {
-            setStyle(15f)
-            setTextColor(WColor.SecondaryText.color)
-            text = LocaleController.getString("All Wallets")
-            gravity = Gravity.CENTER_HORIZONTAL
-        }
     }
 
     private val balanceContentView by lazy {
@@ -218,18 +210,13 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
             gravity = Gravity.CENTER_HORIZONTAL
             setPaddingLocalized(
                 ViewConstants.HORIZONTAL_PADDINGS.dp,
-                24.dp,
+                (navigationController?.getSystemBars()?.top ?: 0) +
+                    WNavigationBar.DEFAULT_HEIGHT.dp +
+                    24.dp,
                 ViewConstants.HORIZONTAL_PADDINGS.dp,
                 24.dp
             )
 
-            addView(
-                titleLabel,
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-            )
             addView(
                 balanceView,
                 LinearLayout.LayoutParams(
@@ -317,7 +304,6 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
     override fun setupViews() {
         super.setupViews()
 
-        setNavTitle(LocaleController.getString("All"))
         setupNavBar(true)
 
         view.addView(
