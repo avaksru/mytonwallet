@@ -6,25 +6,33 @@ import android.graphics.Color
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import java.lang.ref.WeakReference
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import org.mytonwallet.app_air.icons.R
 import org.mytonwallet.app_air.uicomponents.base.WViewControllerWithModelStore
 import org.mytonwallet.app_air.uicomponents.extensions.dp
 import org.mytonwallet.app_air.uicomponents.extensions.setPaddingLocalized
 import org.mytonwallet.app_air.uicomponents.helpers.WFont
 import org.mytonwallet.app_air.uicomponents.helpers.typeface
+import org.mytonwallet.app_air.uicomponents.widgets.AutoScaleContainerView
 import org.mytonwallet.app_air.uicomponents.widgets.WButton
 import org.mytonwallet.app_air.uicomponents.widgets.WLabel
 import org.mytonwallet.app_air.uicomponents.widgets.WScrollView
 import org.mytonwallet.app_air.uicomponents.widgets.balance.WBalanceView
+import org.mytonwallet.app_air.uicomponents.widgets.menu.WMenuPopup
 import org.mytonwallet.app_air.uicomponents.widgets.segmentedControlGroup.WSegmentedControlGroup
+import org.mytonwallet.app_air.uicomponents.widgets.sensitiveDataContainer.SensitiveDataMaskView
+import org.mytonwallet.app_air.uicomponents.widgets.sensitiveDataContainer.WSensitiveDataContainer
 import org.mytonwallet.app_air.uicomponents.widgets.setBackgroundColor
 import org.mytonwallet.app_air.uisettings.viewControllers.baseCurrency.BaseCurrencyVC
+import org.mytonwallet.app_air.uiwidgets.configurations.WidgetsConfigurations
 import org.mytonwallet.app_air.walletbasecontext.localization.LocaleController
 import org.mytonwallet.app_air.walletbasecontext.models.MBaseCurrency
 import org.mytonwallet.app_air.walletbasecontext.theme.ViewConstants
@@ -33,7 +41,10 @@ import org.mytonwallet.app_air.walletbasecontext.theme.color
 import org.mytonwallet.app_air.walletbasecontext.utils.MHistoryTimePeriod
 import org.mytonwallet.app_air.walletbasecontext.utils.toBigInteger
 import org.mytonwallet.app_air.walletbasecontext.utils.toString
+import org.mytonwallet.app_air.walletcontext.globalStorage.WGlobalStorage
 import org.mytonwallet.app_air.walletcore.WalletCore
+import org.mytonwallet.app_air.walletcore.api.setBaseCurrency
+import org.mytonwallet.app_air.walletcore.stores.BalanceStore
 
 @SuppressLint("ViewConstructor")
 class AllVC(context: Context) : WViewControllerWithModelStore(context) {
@@ -52,7 +63,7 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
             setPadding(12.dp, 6.dp, 12.dp, 6.dp)
             customTextColor = WColor.Tint.color
             setOnClickListener {
-                navigationController?.push(BaseCurrencyVC(context))
+                showCurrencyMenu()
             }
         }
     }
@@ -66,17 +77,86 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
         }
     }
 
-    private val balanceView by lazy {
+    private val balanceContentView by lazy {
         WBalanceView(context).apply {
             typeface = WFont.Bold.typeface
             primaryColor = WColor.PrimaryText.color
             secondaryColor = WColor.PrimaryText.color
-            primarySize = 34f
-            decimalsSize = 28f
-            currencySize = 30f
+            primarySize = 36f
+            decimalsSize = 30f
+            currencySize = 32f
             smartDecimalsAlpha = true
             reducedDecimalsAlpha = 191
-            smartDecimalsColor = false
+            smartDecimalsColor = true
+            containerWidth = widthForBalance
+        }
+    }
+
+    private val widthForBalance: Int
+        get() {
+            val windowWidth = navigationController?.window?.windowView?.width
+                ?: window?.windowView?.width
+                ?: 0
+            return windowWidth - 34.dp
+        }
+
+    private val arrowDownDrawable by lazy {
+        context.getDrawable(R.drawable.ic_arrows_14)?.mutate()
+    }
+
+    private val arrowImageView by lazy {
+        ImageView(context).apply {
+            setImageDrawable(arrowDownDrawable)
+            setColorFilter(WColor.PrimaryText.color)
+            alpha = 0.5f
+            isVisible = true
+        }
+    }
+
+    private val balanceView by lazy {
+        val container = LinearLayout(context).apply {
+            clipChildren = false
+            clipToPadding = false
+            layoutDirection = View.LAYOUT_DIRECTION_LTR
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        container.addView(
+            balanceContentView,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
+        container.addView(
+            arrowImageView,
+            LinearLayout.LayoutParams(18.dp, 24.dp).apply {
+                leftMargin = 4.dp
+                topMargin = 3.dp
+                rightMargin = 4.dp
+            }
+        )
+        WSensitiveDataContainer(
+            AutoScaleContainerView(container).apply {
+                clipChildren = false
+                clipToPadding = false
+                maxAllowedWidth = widthForBalance
+                minPadding = 16.dp
+            },
+            WSensitiveDataContainer.MaskConfig(
+                16,
+                4,
+                Gravity.CENTER,
+                skin = SensitiveDataMaskView.Skin.LIGHT_THEME,
+                cellSize = 14.dp,
+                protectContentLayoutSize = false
+            )
+        ).apply {
+            clipChildren = false
+            clipToPadding = false
+            setOnClickListener {
+                showCurrencyMenu()
+            }
         }
     }
 
@@ -289,14 +369,15 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
         )
 
         val baseCurrency = WalletCore.baseCurrency
-        balanceView.animateText(
+        balanceContentView.animateText(
             WBalanceView.AnimateConfig(
                 amount = state.totalBalance?.toBigInteger(baseCurrency.decimalsCount),
                 decimals = baseCurrency.decimalsCount,
                 currency = baseCurrency.sign,
                 animated = false,
                 setInstantly = true,
-                forceCurrencyToRight = LocaleController.isRTL
+                forceCurrencyToRight = LocaleController.isRTL ||
+                    MBaseCurrency.forcedToRight.contains(baseCurrency.sign)
             )
         )
 
@@ -341,6 +422,55 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
     private fun formatPercent(value: Double): String {
         val sign = if (value >= 0) "+" else ""
         return "$sign%.2f%%".format(value)
+    }
+
+    private fun showCurrencyMenu() {
+        WMenuPopup.present(
+            balanceView,
+            BaseCurrencyVC.baseCurrencies.map {
+                val totalBalance =
+                    calcTotalBalanceInBaseCurrencyForAllAccounts(it)
+                WMenuPopup.Item(
+                    config = WMenuPopup.Item.Config.SelectableItem(
+                        title = it.currencyName,
+                        subtitle = totalBalance?.toString(
+                            decimals = 9,
+                            currency = it.sign,
+                            currencyDecimals = 9,
+                            smartDecimals = true,
+                            roundUp = false
+                        ),
+                        isSelected =
+                            WalletCore.baseCurrency.currencySymbol == it.currencySymbol
+                    ),
+                    hasSeparator = false
+                ) {
+                    WalletCore.setBaseCurrency(newBaseCurrency = it.currencyCode) { _, _ -> }
+                    WidgetsConfigurations.reloadWidgets(context)
+                }
+            },
+            centerHorizontally = true,
+            yOffset = (-6).dp,
+            popupWidth = 225.dp,
+            positioning = WMenuPopup.Positioning.BELOW
+        )
+    }
+
+    private fun calcTotalBalanceInBaseCurrencyForAllAccounts(baseCurrency: MBaseCurrency): Double? {
+        val accountIds = WGlobalStorage.accountIds()
+        if (accountIds.isEmpty()) return null
+        var hasValue = false
+        var sum = 0.0
+        accountIds.forEach { accountId ->
+            BalanceStore.calcTotalBalanceInBaseCurrency(
+                accountId,
+                baseCurrency
+            )?.total?.let { value ->
+                hasValue = true
+                sum += value
+            }
+        }
+        return if (hasValue) sum else null
     }
 
     companion object {
