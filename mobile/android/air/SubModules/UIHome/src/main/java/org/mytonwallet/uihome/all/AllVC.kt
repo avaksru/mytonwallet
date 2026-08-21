@@ -368,7 +368,8 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
             changeLabel.text = "..."
             changeLabel.setTextColor(WColor.SecondaryText.color)
         } else {
-            changeLabel.text = ""
+            changeLabel.text = LocaleController.getString("No data")
+            changeLabel.setTextColor(WColor.SecondaryText.color)
         }
 
         stakingMonthValueLabel.text =
