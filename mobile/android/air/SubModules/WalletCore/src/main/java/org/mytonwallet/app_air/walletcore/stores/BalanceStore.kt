@@ -169,6 +169,26 @@ object BalanceStore : IStore {
         totalBalance24hInBaseCurrency.get(accountId)
             ?: calcTotalBalance24hInBaseCurrency(accountId)
 
+    fun totalBalanceInBaseCurrencyForAllAccounts(): Double {
+        val accountIds = WGlobalStorage.accountIds()
+        if (accountIds.isEmpty()) return 0.0
+        return accountIds.sumOf { totalBalanceInBaseCurrency(it) ?: 0.0 }
+    }
+
+    fun totalBalance24hInBaseCurrencyForAllAccounts(): Double? {
+        val accountIds = WGlobalStorage.accountIds()
+        if (accountIds.isEmpty()) return null
+        var hasValue = false
+        var sum = 0.0
+        accountIds.forEach { accountId ->
+            totalBalance24hInBaseCurrency(accountId)?.let {
+                hasValue = true
+                sum += it
+            }
+        }
+        return if (hasValue) sum else null
+    }
+
     data class TotalBalanceResult(val total: Double, val perChain: Map<MBlockchain, Double>)
 
     fun calcTotalBalanceInBaseCurrency(

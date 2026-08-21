@@ -33,6 +33,7 @@ import org.mytonwallet.app_air.walletcore.models.MScreenMode
 import org.mytonwallet.app_air.walletcore.models.blockchain.MBlockchain
 import org.mytonwallet.app_air.walletcore.stores.AccountStore
 import org.mytonwallet.app_air.walletcore.stores.TokenStore
+import org.mytonwallet.uihome.all.AllVC
 import org.mytonwallet.uihome.home.HomeVC
 import org.mytonwallet.uihome.home.promotion.PromotionVC
 import org.mytonwallet.uihome.tabs.views.IBottomNavigationView
@@ -85,6 +86,8 @@ abstract class BaseTabsVC(context: Context) :
                 IBottomNavigationView.ID_SETTINGS -> SettingsVC(context)
 
                 IBottomNavigationView.ID_PORTFOLIO -> PortfolioVC(context)
+
+                IBottomNavigationView.ID_ALL -> AllVC(context)
 
                 else -> throw Error()
             }

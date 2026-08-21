@@ -109,4 +109,18 @@ data class MUpdateStaking(
         } +
             balanceInBaseCurrency(MYCOIN_SLUG, totalMycoinBalance) { toBaseCurrency24h } +
             balanceInBaseCurrency(USDE_SLUG, totalUSDeBalance) { toBaseCurrency24h }
+
+    fun totalProfitInBaseCurrency(): Double =
+        balanceInBaseCurrency(TONCOIN_SLUG, totalProfit) { toBaseCurrency }
+
+    fun totalUnclaimedRewardsInBaseCurrency(): Double =
+        states.sumOf { state ->
+            when (state) {
+                is StakingState.Jetton -> balanceInBaseCurrency(state.tokenSlug, state.unclaimedRewards) {
+                    toBaseCurrency
+                }
+
+                else -> 0.0
+            }
+        }
 }

@@ -22,6 +22,7 @@ object AppTabsManager {
     const val TAB_EXPLORE = "explore"
     const val TAB_SETTINGS = "settings"
     const val TAB_PORTFOLIO = "portfolio"
+    const val TAB_ALL = "all"
 
     val registeredTabs = listOf(
         AppTab(
@@ -63,10 +64,18 @@ object AppTabsManager {
             R.drawable.ic_portfolio_filled,
             "Portfolio",
             isRequired = false
+        ),
+        AppTab(
+            TAB_ALL,
+            IBottomNavigationView.ID_ALL,
+            R.drawable.ic_all_thin,
+            R.drawable.ic_all_filled,
+            "All",
+            isRequired = false
         )
     )
 
-    val defaultTabIds = listOf(TAB_WALLET, TAB_AGENT, TAB_EXPLORE, TAB_SETTINGS)
+    val defaultTabIds = listOf(TAB_WALLET, TAB_AGENT, TAB_EXPLORE, TAB_SETTINGS, TAB_ALL)
 
     private var _orderedTabIds: List<String>? = null
     val orderedTabIds: List<String>
@@ -96,14 +105,31 @@ object AppTabsManager {
 
     // Drops unknown/duplicate ids and re-appends missing required tabs, so a stale or foreign
     // stored order can never leave the app without the wallet/settings tabs.
+    // Also migrates in newly-added tabs (e.g. "All") to existing stored orders.
     private fun validatedTabOrder(raw: List<String>?): List<String> {
         if (raw.isNullOrEmpty()) return defaultTabIds
+
+        // If the stored order matches the old default order, migrate directly to the new default.
+        val oldDefaultTabIds = listOf(TAB_WALLET, TAB_AGENT, TAB_EXPLORE, TAB_SETTINGS)
+        if (raw == oldDefaultTabIds) return defaultTabIds
+
         val result = LinkedHashSet<String>()
         raw.forEach { id ->
             if (tabFor(id) != null) result.add(id)
         }
         registeredTabs.forEach { tab ->
             if (tab.isRequired) result.add(tab.id)
+        }
+        // Migration: ensure the "All" tab is present in older stored orders.
+        if (TAB_ALL !in result) {
+            val list = result.toMutableList()
+            val walletIndex = list.indexOf(TAB_WALLET)
+            if (walletIndex >= 0) {
+                list.add(walletIndex + 1, TAB_ALL)
+            } else {
+                list.add(0, TAB_ALL)
+            }
+            return list
         }
         return result.toList()
     }
