@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -22,7 +21,6 @@ import org.mytonwallet.app_air.uicomponents.extensions.setPaddingLocalized
 import org.mytonwallet.app_air.uicomponents.helpers.WFont
 import org.mytonwallet.app_air.uicomponents.helpers.typeface
 import org.mytonwallet.app_air.uicomponents.widgets.AutoScaleContainerView
-import org.mytonwallet.app_air.uicomponents.widgets.WButton
 import org.mytonwallet.app_air.uicomponents.widgets.WLabel
 import org.mytonwallet.app_air.uicomponents.widgets.WScrollView
 import org.mytonwallet.app_air.uicomponents.widgets.balance.WBalanceView
@@ -38,6 +36,7 @@ import org.mytonwallet.app_air.walletbasecontext.models.MBaseCurrency
 import org.mytonwallet.app_air.walletbasecontext.theme.ViewConstants
 import org.mytonwallet.app_air.walletbasecontext.theme.WColor
 import org.mytonwallet.app_air.walletbasecontext.theme.color
+import org.mytonwallet.app_air.walletbasecontext.utils.ApplicationContextHolder
 import org.mytonwallet.app_air.walletbasecontext.utils.MHistoryTimePeriod
 import org.mytonwallet.app_air.walletbasecontext.utils.toBigInteger
 import org.mytonwallet.app_air.walletbasecontext.utils.toString
@@ -58,16 +57,6 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
         ViewModelProvider(this)[AllVM::class.java]
     }
 
-    private val currencyButton by lazy {
-        WButton(context, WButton.Type.SECONDARY).apply {
-            setPadding(12.dp, 6.dp, 12.dp, 6.dp)
-            customTextColor = WColor.Tint.color
-            setOnClickListener {
-                showCurrencyMenu()
-            }
-        }
-    }
-
     private val titleLabel by lazy {
         WLabel(context).apply {
             setStyle(15f)
@@ -79,16 +68,12 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
 
     private val balanceContentView by lazy {
         WBalanceView(context).apply {
-            typeface = WFont.Bold.typeface
+            typeface = WFont.Balance.typeface
             primaryColor = WColor.PrimaryText.color
             secondaryColor = WColor.PrimaryText.color
-            primarySize = 36f
-            decimalsSize = 30f
-            currencySize = 32f
             smartDecimalsAlpha = true
             reducedDecimalsAlpha = 191
             smartDecimalsColor = true
-            containerWidth = widthForBalance
         }
     }
 
@@ -96,8 +81,8 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
         get() {
             val windowWidth = navigationController?.window?.windowView?.width
                 ?: window?.windowView?.width
-                ?: 0
-            return windowWidth - 34.dp
+                ?: ApplicationContextHolder.screenWidth
+            return (windowWidth - 34.dp).coerceAtLeast(0)
         }
 
     private val arrowDownDrawable by lazy {
@@ -334,17 +319,21 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
 
         setNavTitle(LocaleController.getString("All"))
         setupNavBar(true)
-        navigationBar?.addTrailingView(
-            currencyButton,
-            ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT, 40.dp)
-        )
-        updateCurrencyButton()
 
         view.addView(
             scrollView,
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         )
+
+        scrollView.post {
+            val width = widthForBalance
+            if (width > 0) {
+                balanceContentView.containerWidth = width
+                balanceView.contentView.maxAllowedWidth = width
+                balanceView.contentView.updateScale()
+            }
+        }
 
         viewModel.stateFlow
             .onEach { bindState(it) }
@@ -362,7 +351,6 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
     }
 
     private fun bindState(state: AllUiState) {
-        updateCurrencyButton()
         periodSelector.setSelectedIndex(
             PERIODS.indexOf(state.selectedPeriod),
             shouldAnimate = false
@@ -401,10 +389,6 @@ class AllVC(context: Context) : WViewControllerWithModelStore(context) {
             formatCurrency(state.stakingMonth ?: 0.0, hideIfZero = state.stakingMonth == null)
         stakingAllTimeValueLabel.text =
             formatCurrency(state.stakingAllTime ?: 0.0, hideIfZero = state.stakingAllTime == null)
-    }
-
-    private fun updateCurrencyButton() {
-        currencyButton.setText(WalletCore.baseCurrency.currencySymbol)
     }
 
     private fun formatCurrency(value: Double, hideIfZero: Boolean = false): String {
