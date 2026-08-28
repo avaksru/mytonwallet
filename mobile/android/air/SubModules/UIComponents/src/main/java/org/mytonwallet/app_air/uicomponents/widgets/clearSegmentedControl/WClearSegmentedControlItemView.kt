@@ -30,10 +30,12 @@ import org.mytonwallet.app_air.uicomponents.widgets.WThemedView
 import org.mytonwallet.app_air.uicomponents.widgets.clearSegmentedControl.WClearSegmentedControlItemView.TrailingButton.Arrow
 import org.mytonwallet.app_air.uicomponents.widgets.clearSegmentedControl.WClearSegmentedControlItemView.TrailingButton.Remove
 import org.mytonwallet.app_air.uicomponents.widgets.setBackgroundColor
+import org.mytonwallet.app_air.walletbasecontext.theme.ThemeManager
 import org.mytonwallet.app_air.walletbasecontext.theme.WColor
 import org.mytonwallet.app_air.walletbasecontext.theme.color
 import org.mytonwallet.app_air.walletbasecontext.utils.getDrawableCompat
 import org.mytonwallet.app_air.walletcontext.utils.AnimUtils.Companion.lerp
+import org.mytonwallet.app_air.walletcontext.utils.colorWithAlpha
 
 open class WClearSegmentedControlItemView(context: Context) :
     WCell(context, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT)),
@@ -150,7 +152,9 @@ open class WClearSegmentedControlItemView(context: Context) :
         textView.text = item.title
         this.onRemove = onRemove
         if (isInDragMode) {
-            textView.setTextColor(if (isSelected) WColor.PrimaryText else WColor.SecondaryText)
+            textView.setTextColor(
+                if (isSelected) WColor.Tint.color else WColor.SecondaryText.color
+            )
             startShake()
         } else {
             stopShake()
@@ -342,7 +346,12 @@ open class WClearSegmentedControlItemView(context: Context) :
         (badgeView.background as? GradientDrawable)?.setColor(WColor.Red.color)
         badgeLabel.setTextColor(Color.WHITE)
         if (shouldShowBackground) {
-            setBackgroundColor(paintColor ?: WColor.SecondaryBackground.color, 16f.dp)
+            setBackgroundColor(
+                paintColor ?: WColor.Tint.color.colorWithAlpha(
+                    if (ThemeManager.isDark) 0x26 else 0x14
+                ),
+                16f.dp
+            )
         } else {
             background = null
         }

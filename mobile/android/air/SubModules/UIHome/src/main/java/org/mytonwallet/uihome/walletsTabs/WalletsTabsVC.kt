@@ -38,6 +38,7 @@ import org.mytonwallet.app_air.uicomponents.widgets.segmentedController.WSegment
 import org.mytonwallet.app_air.uicomponents.widgets.segmentedController.WSegmentedControllerItem
 import org.mytonwallet.app_air.uicomponents.widgets.sensitiveDataContainer.WSensitiveDataContainer
 import org.mytonwallet.app_air.uicomponents.widgets.setBackgroundColor
+import org.mytonwallet.app_air.uisettings.viewControllers.settings.SettingsVC
 import org.mytonwallet.app_air.walletbasecontext.localization.LocaleController
 import org.mytonwallet.app_air.walletbasecontext.theme.ViewConstants
 import org.mytonwallet.app_air.walletbasecontext.theme.WColor
@@ -663,6 +664,23 @@ class WalletsTabsVC(context: Context, val defaultMode: MWalletSettingsViewMode) 
                     ),
                     onTap = {
                         toggleReorder(true)
+                    }
+                ),
+                WMenuPopup.Item(
+                    WMenuPopup.Item.Config.Item(
+                        icon = WMenuPopup.Item.Config.Icon(
+                            org.mytonwallet.app_air.icons.R.drawable.ic_settings,
+                            tintColor = WColor.SecondaryText
+                        ),
+                        title = LocaleController.getString("Settings")
+                    ),
+                    onTap = {
+                        val navVC = WNavigationController(
+                            window!!,
+                            WNavigationController.PresentationConfig.PreferredFullScreen
+                        )
+                        navVC.setRoot(SettingsVC(context))
+                        window?.present(navVC)
                     }
                 )
             ),

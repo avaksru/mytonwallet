@@ -47,6 +47,7 @@ import org.mytonwallet.app_air.uicomponents.widgets.WRecyclerView
 import org.mytonwallet.app_air.uicomponents.widgets.WThemedView
 import org.mytonwallet.app_air.uicomponents.widgets.recyclerView.CustomItemTouchHelper
 import org.mytonwallet.app_air.walletbasecontext.localization.LocaleController
+import org.mytonwallet.app_air.walletbasecontext.theme.ThemeManager
 import org.mytonwallet.app_air.walletbasecontext.theme.WColor
 import org.mytonwallet.app_air.walletbasecontext.theme.color
 import org.mytonwallet.app_air.walletcontext.globalStorage.WGlobalStorage
@@ -129,8 +130,13 @@ class WClearSegmentedControl(
     var paintColor: Int? = null
         set(value) {
             field = value
-            paint.color = paintColor ?: WColor.SecondaryBackground.color
+            paint.color = paintColor ?: thumbColor
         }
+
+    // Selected-chip background, matching the Telegram-style prototype
+    // (accent-tinted translucent pill behind the active chip).
+    private val thumbColor: Int
+        get() = WColor.Tint.color.colorWithAlpha(if (ThemeManager.isDark) 0x26 else 0x14)
 
     private val rect = RectF()
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -698,7 +704,7 @@ class WClearSegmentedControl(
 
     override fun updateTheme() {
         primaryTextColor =
-            if (isTransparent) Color.WHITE else WColor.PrimaryText.color
+            if (isTransparent) Color.WHITE else WColor.Tint.color
         secondaryTextColor =
             if (isTransparent) Color.WHITE.colorWithAlpha(153) else WColor.SecondaryText.color
         if (paintColor == null) {
@@ -706,7 +712,7 @@ class WClearSegmentedControl(
                 if (isTransparent) {
                     Color.WHITE.colorWithAlpha(38)
                 } else {
-                    WColor.TrinaryBackground.color
+                    thumbColor
                 }
         }
         rvAdapter.reloadData()
@@ -844,7 +850,7 @@ class WClearSegmentedControl(
             paint.color =
                 ColorUtils.blendARGB(color1.colorWithAlpha(20), color2.colorWithAlpha(20), fraction)
         } else {
-            paint.color = paintColor ?: WColor.TrinaryBackground.color
+            paint.color = paintColor ?: thumbColor
         }
 
         val (currentView, nextView) = getViews(layoutManager, index, nextIndex)

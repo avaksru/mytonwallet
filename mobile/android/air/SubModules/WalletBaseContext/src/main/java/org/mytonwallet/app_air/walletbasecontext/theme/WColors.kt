@@ -113,8 +113,8 @@ object ThemeManager : ITheme {
         colors[WColor.BackgroundRipple.ordinal] = getColor(WColor.PrimaryText) and 0x10FFFFFF
         colors[WColor.TintRipple.ordinal] = getColor(WColor.Tint) and 0x18FFFFFF
 
-        ViewConstants.BLOCK_RADIUS = if (roundedCornersActive) 24f else 0f
-        ViewConstants.TOOLBAR_RADIUS = if (roundedToolbarsActive) 24f else 0f
+        ViewConstants.BLOCK_RADIUS = if (roundedCornersActive) 16f else 0f
+        ViewConstants.TOOLBAR_RADIUS = if (roundedToolbarsActive) 16f else 0f
         ViewConstants.HORIZONTAL_PADDINGS = if (sideGuttersActive) 10 else 0
     }
 

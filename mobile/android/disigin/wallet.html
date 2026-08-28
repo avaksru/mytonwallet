@@ -1,0 +1,597 @@
+﻿<!DOCTYPE html>
+<!-- ============================================================
+     WALLET.HTML — вариант главной страницы прототипа криптокошелька
+     (Telegram-style). Отличается от index.html только списком
+     кошельков на главном экране: в ячейках wallet-cell НЕТ строки
+     wallet-cell__crypto (примерного эквивалента в криптовалюте) —
+     только баланс в долларах. Вся «логика» — в js/app.js,
+     оформление — в css/styles.css.
+     Структура страницы:
+       • .phone        — «корпус телефона», внутри весь интерфейс;
+       • .status-bar   — системная строка (время, сеть, батарея);
+       • .screen-stack — все экраны (главная, кошельки, настройки,
+                         новый кошелёк, выбор языка);
+       • kebab-menu    — выпадающее меню «⋮»; fab — кнопка «+».
+     Элементы переводятся по data-i18n-атрибутам (см. app.js).
+     ============================================================ -->
+<html lang="ru">
+<!-- Служебные мета-теги:
+     • тройка Cache-Control / Pragma / Expires — отключает кэширование,
+       чтобы правки HTML/CSS/JS были видны сразу при разработке;
+     • viewport — масштаб 1:1 на мобильных, viewport-fit=cover —
+       учёт вырезов экрана, user-scalable=no — запрет зума пальцами. -->
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <!-- Заголовок вкладки браузера -->
+  <title>Wallet — Telegram Style</title>
+  <!-- Все стили прототипа; ?v=20 — параметр для сброса кэша -->
+  <link rel="stylesheet" href="css/styles.css?v=20">
+  <!-- Инлайн-страховка: страница видна сразу, даже если основной
+       CSS ещё не загрузился (иначе body мог бы остаться скрытым) -->
+  <style>body{visibility:visible}</style>
+</head>
+<body>
+<!-- «КОРПУС ТЕЛЕФОНА»: весь интерфейс живёт внутри блока 390×844
+     (размеры и рамка — в .phone в styles.css). Скрипт вешает сюда
+     класс dark для тёмной темы; id="phone" нужен скрипту для поиска. -->
+<div class="phone" id="phone">
+
+  <!-- ============================================================
+       СТАТУС-БАР — имитация системной строки Android.
+       • «4G»              — условный индикатор сети (декорация);
+       • id="status-time"  — часы ЧЧ:ММ; заполняет и обновляет
+                             app.js (updateClock, каждые 30 секунд);
+       • status-bar__icons — SVG-иконки уровня сигнала и батареи
+                             (чистая графика, без логики).
+       ============================================================ -->
+  <div class="status-bar">
+    <!-- Условный индикатор сети «4G» (декорация) -->
+    <span style="width:60px;text-align:left;font-weight:var(--fw-medium)">4G</span>
+    <!-- Часы: app.js пишет сюда текущее время каждые 30 секунд -->
+    <span class="status-bar__time" id="status-time">12:00</span>
+    <!-- SVG-иконки: уровень сигнала и заряд батареи (декорация) -->
+    <span class="status-bar__icons">
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><rect x="0" y="7" width="2.2" height="4" rx="0.5" fill="currentColor"/><rect x="3.3" y="5" width="2.2" height="6" rx="0.5" fill="currentColor"/><rect x="6.6" y="3" width="2.2" height="8" rx="0.5" fill="currentColor"/><rect x="9.9" y="0" width="2.2" height="11" rx="0.5" fill="currentColor" opacity="0.4"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="2.5" stroke="currentColor" stroke-opacity="0.35" fill="none"/><rect x="2" y="2" width="18" height="8" rx="1.5" fill="currentColor"/><rect x="22" y="3" width="2" height="6" rx="1" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+  <!-- ============================================================
+       СТЕК ЭКРАНОВ: здесь лежат все экраны приложения (блоки .screen).
+       Виден только экран с классом active — его ставит app.js
+       (showScreen). Экраны: главная, 5 экранов кошельков, настройки,
+       новый кошелёк, выбор языка. Переходы анимируются в CSS.
+       ============================================================ -->
+  <div class="screen-stack">
+
+    <!-- ============================================================
+         ЭКРАН «КОШЕЛЬКИ» (главный, id="screen-home")
+         Структура сверху вниз:
+           1) nav-bar        — заголовок + замок + меню «⋮»;
+           2) chips-bar      — вкладки-фильтры кошельков (data-chip);
+           3) balance-card   — общий баланс и изменение за 24 часа;
+           4) income-section — сворачиваемый блок «Доход»;
+           5) card-group     — список кошельков (wallet-cell).
+         Активен по умолчанию (class="active").
+         ============================================================ -->
+    <div class="screen active" id="screen-home">
+      <!-- ШАПКА ЭКРАНА: заголовок «Кошельки» (data-i18n), значок замка
+           «Кошелёк заблокирован» и кнопка меню «⋮» (id="kebab-btn" —
+           по клику app.js открывает выпадающее kebab-меню). -->
+            <div class="nav-bar">
+        <span class="nav-bar__title" data-i18n="wallets">Кошельки</span>
+        <span class="nav-bar__action nav-bar__action--lock" title="Кошелёк заблокирован" data-i18n-title="wallet_locked">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </span>
+        <span class="nav-bar__action kebab-btn" id="kebab-btn" title="Меню" data-i18n-title="menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </span>
+      </div>
+      <!-- ЧИПЫ-ФИЛЬТРЫ: вкладки кошельков (data-chip: all / main /
+           trading / savings / invest / business). Клик — app.js
+           подсвечивает чип (setActiveChip) и открывает экран кошелька.
+           Скрипт также управляет раскладкой строки (layoutChipsBar):
+           растягивает чипы на всю ширину или уплотняет. -->
+      <div class="chips-bar" id="chips-bar">
+        <span class="chip active" data-chip="all" data-i18n="all">Все</span>
+        <span class="chip" data-chip="main"><span data-i18n="wallet_main">Основной</span></span>
+        <span class="chip" data-chip="trading"><span data-i18n="wallet_trading">Trading</span></span>
+        <span class="chip" data-chip="savings"><span data-i18n="wallet_savings">Savings</span></span>
+        <span class="chip" data-chip="invest"><span data-i18n="wallet_invest">Инвестиции</span></span>
+        <span class="chip" data-chip="business"><span data-i18n="wallet_business">Бизнес</span></span>
+      </div>
+      <!-- КАРТОЧКА ОБЩЕГО БАЛАНСА: подпись «Общий баланс», крупная
+           сумма $16 190.97 и «пилюля» изменения за 24 часа: SVG-стрелка
+           вверх + текст (значение из data-i18n-value подставляется
+           в перевод change_24h). Класс positive — зелёная «пилюля». -->
+      <div class="balance-card animate-in stagger-1">
+        <div class="balance-card__label" data-i18n="total_balance">Общий баланс</div>
+        <div class="balance-card__amount">$16 190.97</div>
+        <span class="balance-card__change positive"><svg viewBox="0 0 12 12" fill="none"><path d="M6 2L2 7h8L6 2z" fill="currentColor"/></svg> <span data-i18n="change_24h" data-i18n-value="+3.24%">+3.24% за 24ч</span></span>
+      </div>
+      <!-- СЕКЦИЯ «ДОХОД» (сворачиваемая)
+           id="income-section"; класс collapsed = свёрнута по умолчанию.
+           • income-header (id="income-toggle") — строка «ДОХОД»,
+             итог «+$4 203.10 за год» (значение — data-i18n-value
+             для перевода per_year) и шеврон; клик сворачивает/
+             разворачивает секцию (app.js переключает collapsed,
+             CSS анимирует высоту и поворот стрелки).
+           • income-body (id="income-body") — скрытое содержимое:
+             строки периодов (месяц / 3 месяца / год) и блок «Стейкинг».
+             Тело секции прячется при collapsed у родителя
+             (max-height:0 + прозрачность, плавная анимация в CSS) -->
+      <div class="income-section animate-in stagger-2 collapsed" id="income-section">
+        <div class="income-header" id="income-toggle">
+          <span class="income-header__title" data-i18n="income">Доход</span>
+          <span class="income-header__summary" data-i18n="per_year" data-i18n-value="+$4 203.10">+$4 203.10 за год</span>
+          <span class="income-header__chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        </div>
+        <div class="income-body" id="income-body">
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$412.30</span><span class="income-row__pct">+3.4%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="months_3">3 месяца</span><span class="income-row__values"><span class="income-row__amount positive">+$1 180.55</span><span class="income-row__pct">+10.2%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="year">Год</span><span class="income-row__values"><span class="income-row__amount positive">+$4 203.10</span><span class="income-row__pct">+51.3%</span></span></div>
+          </div>
+          <!-- Подзаголовок «СТЕЙКИНГ» перед вторым блоком строк -->
+          <div class="section-header" data-i18n="staking">Стейкинг</div>
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$58.20</span><span class="income-row__pct">+4.9%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="all_time">Всё время</span><span class="income-row__values"><span class="income-row__amount positive">+$312.45</span><span class="income-row__pct">+26.2%</span></span></div>
+          </div>
+        </div>
+      </div>
+      <!-- СПИСОК КОШЕЛЬКОВ: 5 ячеек wallet-cell. Устройство ячейки:
+           • avatar (--blue/--green/--orange/--purple/--teal) — круглая
+             иконка с градиентом и первой буквой названия;
+           • name — название, sub — «N актив(а/ов)» (data-count →
+             форма множественного числа из словаря переводов);
+           • balance — текущий баланс в долларах.
+           Клик по ячейке (data-wallet) открывает её экран (app.js).
+           (В wallet.html, в отличие от index.html, нет строки
+           wallet-cell__crypto с эквивалентом в криптовалюте.) -->
+      <div class="card-group animate-in stagger-2">
+        <!-- Кошелёк «Основной»: 3 актива, баланс $8 420.15 -->
+        <div class="wallet-cell" data-wallet="main"><div class="wallet-cell__avatar wallet-cell__avatar--blue">О</div><div class="wallet-cell__info"><div class="wallet-cell__name" data-i18n="wallet_main">Основной</div><div class="wallet-cell__sub" data-i18n="assets" data-count="3">3 актива</div></div><div class="wallet-cell__values"><div class="wallet-cell__balance">$8 420.15</div></div></div>
+        <!-- Кошелёк «Trading»: 5 активов, баланс $2 845.60 -->
+        <div class="wallet-cell" data-wallet="trading"><div class="wallet-cell__avatar wallet-cell__avatar--green">T</div><div class="wallet-cell__info"><div class="wallet-cell__name" data-i18n="wallet_trading">Trading</div><div class="wallet-cell__sub" data-i18n="assets" data-count="5">5 активов</div></div><div class="wallet-cell__values"><div class="wallet-cell__balance">$2 845.60</div></div></div>
+        <!-- Кошелёк «Savings»: 2 актива, баланс $1 192.57 -->
+        <div class="wallet-cell" data-wallet="savings"><div class="wallet-cell__avatar wallet-cell__avatar--orange">S</div><div class="wallet-cell__info"><div class="wallet-cell__name" data-i18n="wallet_savings">Savings</div><div class="wallet-cell__sub" data-i18n="assets" data-count="2">2 актива</div></div><div class="wallet-cell__values"><div class="wallet-cell__balance">$1 192.57</div></div></div>
+        <!-- Кошелёк «Инвестиции»: 2 актива, баланс $1 717.69 -->
+        <div class="wallet-cell" data-wallet="invest"><div class="wallet-cell__avatar wallet-cell__avatar--purple">И</div><div class="wallet-cell__info"><div class="wallet-cell__name" data-i18n="wallet_invest">Инвестиции</div><div class="wallet-cell__sub" data-i18n="assets" data-count="2">2 актива</div></div><div class="wallet-cell__values"><div class="wallet-cell__balance">$1 717.69</div></div></div>
+        <!-- Кошелёк «Бизнес»: 3 актива, баланс $2 014.96 -->
+        <div class="wallet-cell" data-wallet="business"><div class="wallet-cell__avatar wallet-cell__avatar--teal">Б</div><div class="wallet-cell__info"><div class="wallet-cell__name" data-i18n="wallet_business">Бизнес</div><div class="wallet-cell__sub" data-i18n="assets" data-count="3">3 актива</div></div><div class="wallet-cell__values"><div class="wallet-cell__balance">$2 014.96</div></div></div>
+      </div>
+    </div>
+    <!-- ============================================================
+         ЭКРАН КОШЕЛЬКА «ОСНОВНОЙ» (id="screen-wallet-detail")
+         Структура одинакова у всех пяти кошельков:
+           шапка («Назад» + название) → чипы (активен свой чип) →
+           balance-card (баланс кошелька) → сворачиваемая секция
+           «Доход» → список активов (asset-cell) → сворачиваемая
+           секция «История» (tx-cell).
+         Открывается кликом по чипу или по ячейке кошелька в списке.
+         ============================================================ -->
+    <div class="screen" id="screen-wallet-detail">
+      <div class="nav-bar">
+        <span class="nav-bar__back" data-back><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></span>
+        <span class="nav-bar__title" data-i18n="wallet_main">Основной</span><span class="nav-bar__action nav-bar__action--lock" title="Кошелёк заблокирован" data-i18n-title="wallet_locked"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span class="nav-bar__action kebab-btn" title="Меню" data-i18n-title="menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></div>
+      <!-- ЧИПЫ этого экрана: активен чип «Основной» (class="active");
+           клики работают так же, как на главной -->
+      <div class="chips-bar"><span class="chip" data-chip="all" data-i18n="all">Все</span><span class="chip active" data-chip="main"><span data-i18n="wallet_main">Основной</span></span><span class="chip" data-chip="trading"><span data-i18n="wallet_trading">Trading</span></span><span class="chip" data-chip="savings"><span data-i18n="wallet_savings">Savings</span></span><span class="chip" data-chip="invest"><span data-i18n="wallet_invest">Инвестиции</span></span><span class="chip" data-chip="business"><span data-i18n="wallet_business">Бизнес</span></span></div>
+      <!-- Баланс кошелька «Основной»: $8 420.15, за 24ч +5.12% -->
+      <div class="balance-card animate-in stagger-1"><div class="balance-card__amount">$8 420.15</div><span class="balance-card__change positive"><svg viewBox="0 0 12 12" fill="none"><path d="M6 2L2 7h8L6 2z" fill="currentColor"/></svg> <span data-i18n="change_24h" data-i18n-value="+5.12%">+5.12% за 24ч</span></span></div>
+      <!-- Секция «Доход» кошелька — свёрнута; устройство то же,
+           что у секции на главном экране (шапка + строки периодов) -->
+      <div class="income-section collapsed">
+        <div class="income-header">
+          <span class="income-header__title" data-i18n="income">Доход</span>
+          <span class="income-header__summary" data-i18n="per_year" data-i18n-value="+$2 890.15">+$2 890.15 за год</span>
+          <span class="income-header__chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        </div>
+        <div class="income-body">
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$286.40</span><span class="income-row__pct">+3.5%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="months_3">3 месяца</span><span class="income-row__values"><span class="income-row__amount positive">+$812.70</span><span class="income-row__pct">+10.7%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="year">Год</span><span class="income-row__values"><span class="income-row__amount positive">+$2 890.15</span><span class="income-row__pct">+52.3%</span></span></div>
+          </div>
+          <div class="section-header" data-i18n="staking">Стейкинг</div>
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$41.60</span><span class="income-row__pct">+5.2%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="all_time">Всё время</span><span class="income-row__values"><span class="income-row__amount positive">+$198.30</span><span class="income-row__pct">+24.8%</span></span></div>
+          </div>
+        </div>
+      </div>
+      <!-- АКТИВЫ КОШЕЛЬКА (asset-cell): иконка-символ с фирменным
+           цветом монеты, название, тикер + количество, стоимость
+           в $ и изменение за период (positive/negative раскраска) -->
+      <div class="card-group animate-in stagger-2">
+        <div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--btc">₿</div><div class="asset-cell__info"><div class="asset-cell__name">Bitcoin</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">BTC</div><div class="asset-cell__amount">0.312</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$7 845.20</div><div class="asset-cell__change positive">+2.4%</div></div></div>
+        <div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--eth">Ξ</div><div class="asset-cell__info"><div class="asset-cell__name">Ethereum</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">ETH</div><div class="asset-cell__amount">0.184</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$478.50</div><div class="asset-cell__change negative">-0.8%</div></div></div>
+        <div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--ton">T</div><div class="asset-cell__info"><div class="asset-cell__name">Toncoin</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">TON</div><div class="asset-cell__amount">18.5</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$96.45</div><div class="asset-cell__change positive">+5.7%</div></div></div>
+      </div>
+      <!-- СЕКЦИЯ «ИСТОРИЯ» (сворачиваемая, свёрнута по умолчанию).
+           Строка транзакции tx-cell:
+           • __icon --in/--out/--swap/--stake — цветной значок типа
+             операции (получено / отправлено / обмен / стейкинг);
+           • __type — тип операции; __date — дата (span[data-ts],
+             локализуется app.js) и монета;
+           • __amount — сумма (+ зелёным / − красным), __fiat — в долларах.
+           Счётчик в шапке («4 операции») берётся из data-count. -->
+      <div class="income-section history-section animate-in stagger-3 collapsed">
+        <div class="income-header">
+          <span class="income-header__title" data-i18n="history">История</span>
+          <span class="income-header__summary income-header__summary--neutral" data-i18n="tx_count" data-count="4">4 операции</span>
+          <span class="income-header__chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        </div>
+        <div class="income-body">
+          <div class="card-group">
+            <!-- Получено: +0.025 BTC ($612.40), 24 авг 14:32 -->
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--in"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_received">Получено</div><div class="tx-cell__date"><span data-ts="2026-08-24T14:32">24 авг, 14:32</span> · BTC</div></div><div class="tx-cell__values"><div class="tx-cell__amount positive">+0.025 BTC</div><div class="tx-cell__fiat">$612.40</div></div></div>
+            <!-- Отправлено: −0.10 ETH ($258.00) -->
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_sent">Отправлено</div><div class="tx-cell__date"><span data-ts="2026-08-18T09:15">18 авг, 09:15</span> · ETH</div></div><div class="tx-cell__values"><div class="tx-cell__amount negative">-0.10 ETH</div><div class="tx-cell__fiat">$258.00</div></div></div>
+            <!-- Награда за стейкинг: +1.2 TON ($6.25) -->
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--stake"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_staking">Награда за стейкинг</div><div class="tx-cell__date"><span data-ts="2026-08-10T18:47">10 авг, 18:47</span> · TON</div></div><div class="tx-cell__values"><div class="tx-cell__amount positive">+1.2 TON</div><div class="tx-cell__fiat">$6.25</div></div></div>
+            <!-- Обмен: 500 USDT → 0.0199 BTC -->
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--swap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M21 7H9"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_swap">Обмен</div><div class="tx-cell__date"><span data-ts="2026-08-05T12:10">5 авг, 12:10</span> · USDT → BTC</div></div><div class="tx-cell__values"><div class="tx-cell__amount">500 USDT → 0.0199 BTC</div><div class="tx-cell__fiat">$500.00</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ЭКРАН КОШЕЛЬКА «TRADING» (id="screen-wallet-detail-trading").
+         Структура полностью повторяет экран «Основной» (см. выше):
+         шапка → чипы → баланс → сворачиваемая «Доход» → активы →
+         сворачиваемая «История». Отличаются только данные. -->
+    <div class="screen" id="screen-wallet-detail-trading">
+      <!-- Шапка: «Назад» (data-back → goBack), заголовок «Trading», замок, меню «⋮» -->
+      <div class="nav-bar"><span class="nav-bar__back" data-back><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></span><span class="nav-bar__title" data-i18n="wallet_trading">Trading</span><span class="nav-bar__action nav-bar__action--lock" title="Кошелёк заблокирован" data-i18n-title="wallet_locked"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span class="nav-bar__action kebab-btn" title="Меню" data-i18n-title="menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></div>
+      <!-- ЧИПЫ: активна вкладка «Trading» (class="active") -->
+      <div class="chips-bar"><span class="chip" data-chip="all" data-i18n="all">Все</span><span class="chip" data-chip="main"><span data-i18n="wallet_main">Основной</span></span><span class="chip active" data-chip="trading"><span data-i18n="wallet_trading">Trading</span></span><span class="chip" data-chip="savings"><span data-i18n="wallet_savings">Savings</span></span><span class="chip" data-chip="invest"><span data-i18n="wallet_invest">Инвестиции</span></span><span class="chip" data-chip="business"><span data-i18n="wallet_business">Бизнес</span></span></div>
+      <!-- Баланс кошелька: $2 845.60, за 24ч −1.18% (negative — красная «пилюля») -->
+      <div class="balance-card animate-in"><div class="balance-card__amount">$2 845.60</div><span class="balance-card__change negative"><svg viewBox="0 0 12 12" fill="none"><path d="M6 10l4-5H2l4 5z" fill="#FF3B30"/></svg> <span data-i18n="change_24h" data-i18n-value="-1.18%">-1.18% за 24ч</span></span></div>
+      <!-- Секция «Доход» (свёрнута): периоды месяц/3 месяца/год + стейкинг -->
+      <div class="income-section collapsed">
+        <div class="income-header">
+          <span class="income-header__title" data-i18n="income">Доход</span>
+          <span class="income-header__summary" data-i18n="per_year" data-i18n-value="+$958.40">+$958.40 за год</span>
+          <span class="income-header__chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        </div>
+        <div class="income-body">
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$96.20</span><span class="income-row__pct">+3.4%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="months_3">3 месяца</span><span class="income-row__values"><span class="income-row__amount positive">+$274.90</span><span class="income-row__pct">+10.4%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="year">Год</span><span class="income-row__values"><span class="income-row__amount positive">+$958.40</span><span class="income-row__pct">+50.8%</span></span></div>
+          </div>
+          <div class="section-header" data-i18n="staking">Стейкинг</div>
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$12.45</span><span class="income-row__pct">+4.4%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="all_time">Всё время</span><span class="income-row__values"><span class="income-row__amount positive">+$86.10</span><span class="income-row__pct">+30.5%</span></span></div>
+          </div>
+        </div>
+      </div>
+      <!-- Активы: ETH 1.24 ($2 480.00), SOL 2.8 ($245.60), USDC 120.0 ($120.00) -->
+      <div class="card-group animate-in"><div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--eth">Ξ</div><div class="asset-cell__info"><div class="asset-cell__name">Ethereum</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">ETH</div><div class="asset-cell__amount">1.24</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$2 480.00</div><div class="asset-cell__change positive">+1.3%</div></div></div><div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--sol">S</div><div class="asset-cell__info"><div class="asset-cell__name">Solana</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">SOL</div><div class="asset-cell__amount">2.8</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$245.60</div><div class="asset-cell__change positive">+8.1%</div></div></div><div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--usdc">$</div><div class="asset-cell__info"><div class="asset-cell__name">USD Coin</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">USDC</div><div class="asset-cell__amount">120.0</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$120.00</div><div class="asset-cell__change positive">0.0%</div></div></div></div>
+      <!-- СЕКЦИЯ «ИСТОРИЯ» (свёрнута): строки tx-cell —
+           подробное описание см. на экране «Основной» -->
+      <div class="income-section history-section animate-in stagger-2 collapsed">
+        <div class="income-header">
+          <span class="income-header__title" data-i18n="history">История</span>
+          <span class="income-header__summary income-header__summary--neutral" data-i18n="tx_count" data-count="4">4 операции</span>
+          <span class="income-header__chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        </div>
+        <div class="income-body">
+          <div class="card-group">
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--in"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_received">Получено</div><div class="tx-cell__date"><span data-ts="2026-08-22T11:05">22 авг, 11:05</span> · SOL</div></div><div class="tx-cell__values"><div class="tx-cell__amount positive">+12.5 SOL</div><div class="tx-cell__fiat">$1 096.25</div></div></div>
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--swap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M21 7H9"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_swap">Обмен</div><div class="tx-cell__date"><span data-ts="2026-08-19T17:25">19 авг, 17:25</span> · USDC → SOL</div></div><div class="tx-cell__values"><div class="tx-cell__amount">240 USDC → 2.95 SOL</div><div class="tx-cell__fiat">$240.00</div></div></div>
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_sent">Отправлено</div><div class="tx-cell__date"><span data-ts="2026-08-15T16:40">15 авг, 16:40</span> · ETH</div></div><div class="tx-cell__values"><div class="tx-cell__amount negative">-0.35 ETH</div><div class="tx-cell__fiat">$903.00</div></div></div>
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--in"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_received">Получено</div><div class="tx-cell__date"><span data-ts="2026-08-02T08:12">2 авг, 08:12</span> · USDC</div></div><div class="tx-cell__values"><div class="tx-cell__amount positive">+120 USDC</div><div class="tx-cell__fiat">$120.00</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ЭКРАН КОШЕЛЬКА «SAVINGS» (id="screen-wallet-detail-savings").
+         Та же структура, что у «Основного»; баланс $1 192.57
+         (+0.52% за 24ч), активы USDT и TON — сберегательный
+         кошелёк с доходом от стейкинга. -->
+    <div class="screen" id="screen-wallet-detail-savings">
+      <!-- Шапка экрана: «Назад», заголовок «Savings», замок, меню «⋮» -->
+      <div class="nav-bar"><span class="nav-bar__back" data-back><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></span><span class="nav-bar__title" data-i18n="wallet_savings">Savings</span><span class="nav-bar__action nav-bar__action--lock" title="Кошелёк заблокирован" data-i18n-title="wallet_locked"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span class="nav-bar__action kebab-btn" title="Меню" data-i18n-title="menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></div>
+      <!-- ЧИПЫ: активна вкладка «Savings» -->
+      <div class="chips-bar"><span class="chip" data-chip="all" data-i18n="all">Все</span><span class="chip" data-chip="main"><span data-i18n="wallet_main">Основной</span></span><span class="chip" data-chip="trading"><span data-i18n="wallet_trading">Trading</span></span><span class="chip active" data-chip="savings"><span data-i18n="wallet_savings">Savings</span></span><span class="chip" data-chip="invest"><span data-i18n="wallet_invest">Инвестиции</span></span><span class="chip" data-chip="business"><span data-i18n="wallet_business">Бизнес</span></span></div>
+      <!-- Баланс кошелька: $1 192.57, за 24ч +0.52% (positive — зелёная «пилюля») -->
+      <div class="balance-card animate-in"><div class="balance-card__amount">$1 192.57</div><span class="balance-card__change positive"><svg viewBox="0 0 12 12" fill="none"><path d="M6 2L2 7h8L6 2z" fill="currentColor"/></svg> <span data-i18n="change_24h" data-i18n-value="+0.52%">+0.52% за 24ч</span></span></div>
+      <!-- Секция «Доход» (свёрнута): периоды месяц/3 месяца/год + стейкинг -->
+      <div class="income-section collapsed">
+        <div class="income-header">
+          <span class="income-header__title" data-i18n="income">Доход</span>
+          <span class="income-header__summary" data-i18n="per_year" data-i18n-value="+$354.55">+$354.55 за год</span>
+          <span class="income-header__chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        </div>
+        <div class="income-body">
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$29.70</span><span class="income-row__pct">+2.5%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="months_3">3 месяца</span><span class="income-row__values"><span class="income-row__amount positive">+$93.95</span><span class="income-row__pct">+8.6%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="year">Год</span><span class="income-row__values"><span class="income-row__amount positive">+$354.55</span><span class="income-row__pct">+42.3%</span></span></div>
+          </div>
+          <div class="section-header" data-i18n="staking">Стейкинг</div>
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$4.15</span><span class="income-row__pct">+3.5%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="all_time">Всё время</span><span class="income-row__values"><span class="income-row__amount positive">+$28.05</span><span class="income-row__pct">+23.6%</span></span></div>
+          </div>
+        </div>
+      </div>
+      <!-- Активы: значок монеты, название, тикер + количество,
+           стоимость в $ и изменение % (USDT, TON) -->
+      <div class="card-group animate-in"><div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--usdt">₮</div><div class="asset-cell__info"><div class="asset-cell__name">Tether</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">USDT</div><div class="asset-cell__amount">42 100</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$1 172.57</div><div class="asset-cell__change positive">+0.01%</div></div></div><div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--btc">₿</div><div class="asset-cell__info"><div class="asset-cell__name">Bitcoin</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">BTC</div><div class="asset-cell__amount">0.001</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$20.00</div><div class="asset-cell__change positive">+2.4%</div></div></div></div>
+      <!-- СЕКЦИЯ «ИСТОРИЯ» (свёрнута): строки tx-cell —
+           подробное описание см. на экране «Основной» -->
+      <div class="income-section history-section animate-in stagger-2 collapsed">
+        <div class="income-header">
+          <span class="income-header__title" data-i18n="history">История</span>
+          <span class="income-header__summary income-header__summary--neutral" data-i18n="tx_count" data-count="3">3 операции</span>
+          <span class="income-header__chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        </div>
+        <div class="income-body">
+          <div class="card-group">
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--in"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_received">Получено</div><div class="tx-cell__date"><span data-ts="2026-08-20T10:00">20 авг, 10:00</span> · USDT</div></div><div class="tx-cell__values"><div class="tx-cell__amount positive">+5 000 USDT</div><div class="tx-cell__fiat">$5 000.00</div></div></div>
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--stake"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_staking">Награда за стейкинг</div><div class="tx-cell__date"><span data-ts="2026-08-01T08:30">1 авг, 08:30</span> · USDT</div></div><div class="tx-cell__values"><div class="tx-cell__amount positive">+4.15 USDT</div><div class="tx-cell__fiat">$4.15</div></div></div>
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_sent">Отправлено</div><div class="tx-cell__date"><span data-ts="2026-07-15T13:20">15 июл, 13:20</span> · BTC</div></div><div class="tx-cell__values"><div class="tx-cell__amount negative">-0.0005 BTC</div><div class="tx-cell__fiat">$12.55</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ЭКРАН КОШЕЛЬКА «ИНВЕСТИЦИИ» (id="screen-wallet-detail-invest").
+         Та же структура; баланс $1 717.69 (+2.87% за 24ч),
+         активы TON, BTC. -->
+    <div class="screen" id="screen-wallet-detail-invest">
+      <!-- Шапка экрана: «Назад», заголовок «Инвестиции», замок, меню «⋮» -->
+      <div class="nav-bar"><span class="nav-bar__back" data-back><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></span><span class="nav-bar__title" data-i18n="wallet_invest">Инвестиции</span><span class="nav-bar__action nav-bar__action--lock" title="Кошелёк заблокирован" data-i18n-title="wallet_locked"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span class="nav-bar__action kebab-btn" title="Меню" data-i18n-title="menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></div>
+      <!-- ЧИПЫ: активна вкладка «Инвестиции» -->
+      <div class="chips-bar"><span class="chip" data-chip="all" data-i18n="all">Все</span><span class="chip" data-chip="main"><span data-i18n="wallet_main">Основной</span></span><span class="chip" data-chip="trading"><span data-i18n="wallet_trading">Trading</span></span><span class="chip" data-chip="savings"><span data-i18n="wallet_savings">Savings</span></span><span class="chip active" data-chip="invest"><span data-i18n="wallet_invest">Инвестиции</span></span><span class="chip" data-chip="business"><span data-i18n="wallet_business">Бизнес</span></span></div>
+      <!-- Баланс кошелька: $1 717.69, за 24ч +2.87% -->
+      <div class="balance-card animate-in"><div class="balance-card__amount">$1 717.69</div><span class="balance-card__change positive"><svg viewBox="0 0 12 12" fill="none"><path d="M6 2L2 7h8L6 2z" fill="currentColor"/></svg> <span data-i18n="change_24h" data-i18n-value="+2.87%">+2.87% за 24ч</span></span></div>
+      <!-- Секция «Доход» (свёрнута) -->
+      <div class="income-section collapsed">
+        <div class="income-header">
+          <span class="income-header__title" data-i18n="income">Доход</span>
+          <span class="income-header__summary" data-i18n="per_year" data-i18n-value="+$312.50">+$312.50 за год</span>
+          <span class="income-header__chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        </div>
+        <div class="income-body">
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$46.80</span><span class="income-row__pct">+2.8%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="months_3">3 месяца</span><span class="income-row__values"><span class="income-row__amount positive">+$134.20</span><span class="income-row__pct">+8.5%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="year">Год</span><span class="income-row__values"><span class="income-row__amount positive">+$312.50</span><span class="income-row__pct">+22.3%</span></span></div>
+          </div>
+          <div class="section-header" data-i18n="staking">Стейкинг</div>
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$18.90</span><span class="income-row__pct">+4.9%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="all_time">Всё время</span><span class="income-row__values"><span class="income-row__amount positive">+$96.40</span><span class="income-row__pct">+28.7%</span></span></div>
+          </div>
+        </div>
+      </div>
+      <!-- Активы: значок монеты, название, тикер + количество,
+           стоимость в $ и изменение % (TON, BTC) -->
+      <div class="card-group animate-in"><div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--ton">T</div><div class="asset-cell__info"><div class="asset-cell__name">Toncoin</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">TON</div><div class="asset-cell__amount">150.0</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$781.50</div><div class="asset-cell__change positive">+5.7%</div></div></div><div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--eth">Ξ</div><div class="asset-cell__info"><div class="asset-cell__name">Ethereum</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">ETH</div><div class="asset-cell__amount">0.36</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$936.19</div><div class="asset-cell__change positive">+1.2%</div></div></div></div>
+      <!-- СЕКЦИЯ «ИСТОРИЯ» (свёрнута): строки tx-cell —
+           подробное описание см. на экране «Основной» -->
+      <div class="income-section history-section animate-in stagger-2 collapsed">
+        <div class="income-header">
+          <span class="income-header__title" data-i18n="history">История</span>
+          <span class="income-header__summary income-header__summary--neutral" data-i18n="tx_count" data-count="3">3 операции</span>
+          <span class="income-header__chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        </div>
+        <div class="income-body">
+          <div class="card-group">
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--in"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_received">Получено</div><div class="tx-cell__date"><span data-ts="2026-08-23T13:20">23 авг, 13:20</span> · TON</div></div><div class="tx-cell__values"><div class="tx-cell__amount positive">+80 TON</div><div class="tx-cell__fiat">$417.60</div></div></div>
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--stake"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_staking">Награда за стейкинг</div><div class="tx-cell__date"><span data-ts="2026-08-08T21:30">8 авг, 21:30</span> · TON</div></div><div class="tx-cell__values"><div class="tx-cell__amount positive">+2.4 TON</div><div class="tx-cell__fiat">$12.50</div></div></div>
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_sent">Отправлено</div><div class="tx-cell__date"><span data-ts="2026-07-28T11:40">28 июл, 11:40</span> · ETH</div></div><div class="tx-cell__values"><div class="tx-cell__amount negative">-0.05 ETH</div><div class="tx-cell__fiat">$130.03</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ЭКРАН КОШЕЛЬКА «БИЗНЕС» (id="screen-wallet-detail-business").
+         Та же структура; баланс $2 014.96 (−0.64% за 24ч),
+         активы USDT, BTC. -->
+    <div class="screen" id="screen-wallet-detail-business">
+      <!-- Шапка экрана: «Назад», заголовок «Бизнес», замок, меню «⋮» -->
+      <div class="nav-bar"><span class="nav-bar__back" data-back><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></span><span class="nav-bar__title" data-i18n="wallet_business">Бизнес</span><span class="nav-bar__action nav-bar__action--lock" title="Кошелёк заблокирован" data-i18n-title="wallet_locked"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span class="nav-bar__action kebab-btn" title="Меню" data-i18n-title="menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></div>
+      <!-- ЧИПЫ: активна вкладка «Бизнес» -->
+      <div class="chips-bar"><span class="chip" data-chip="all" data-i18n="all">Все</span><span class="chip" data-chip="main"><span data-i18n="wallet_main">Основной</span></span><span class="chip" data-chip="trading"><span data-i18n="wallet_trading">Trading</span></span><span class="chip" data-chip="savings"><span data-i18n="wallet_savings">Savings</span></span><span class="chip" data-chip="invest"><span data-i18n="wallet_invest">Инвестиции</span></span><span class="chip active" data-chip="business"><span data-i18n="wallet_business">Бизнес</span></span></div>
+      <!-- Баланс кошелька: $2 014.96, за 24ч −0.64% (negative — красная «пилюля») -->
+      <div class="balance-card animate-in"><div class="balance-card__amount">$2 014.96</div><span class="balance-card__change negative"><svg viewBox="0 0 12 12" fill="none"><path d="M6 10l4-5H2l4 5z" fill="#FF3B30"/></svg> <span data-i18n="change_24h" data-i18n-value="-0.64%">-0.64% за 24ч</span></span></div>
+      <!-- Секция «Доход» (свёрнута) -->
+      <div class="income-section collapsed">
+        <div class="income-header">
+          <span class="income-header__title" data-i18n="income">Доход</span>
+          <span class="income-header__summary" data-i18n="per_year" data-i18n-value="+$486.30">+$486.30 за год</span>
+          <span class="income-header__chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        </div>
+        <div class="income-body">
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$52.40</span><span class="income-row__pct">+3.1%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="months_3">3 месяца</span><span class="income-row__values"><span class="income-row__amount positive">+$158.40</span><span class="income-row__pct">+9.6%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="year">Год</span><span class="income-row__values"><span class="income-row__amount positive">+$486.30</span><span class="income-row__pct">+31.8%</span></span></div>
+          </div>
+          <div class="section-header" data-i18n="staking">Стейкинг</div>
+          <div class="card-group">
+            <div class="income-row"><span class="income-row__label" data-i18n="month">Месяц</span><span class="income-row__values"><span class="income-row__amount positive">+$6.10</span><span class="income-row__pct">+2.2%</span></span></div>
+            <div class="income-row"><span class="income-row__label" data-i18n="all_time">Всё время</span><span class="income-row__values"><span class="income-row__amount positive">+$42.70</span><span class="income-row__pct">+16.4%</span></span></div>
+          </div>
+        </div>
+      </div>
+      <!-- Активы: значок монеты, название, тикер + количество,
+           стоимость в $ и изменение % (USDT, BTC) -->
+      <div class="card-group animate-in"><div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--usdt">₮</div><div class="asset-cell__info"><div class="asset-cell__name">Tether</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">USDT</div><div class="asset-cell__amount">1 200.0</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$1 200.00</div><div class="asset-cell__change positive">0.0%</div></div></div><div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--btc">₿</div><div class="asset-cell__info"><div class="asset-cell__name">Bitcoin</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">BTC</div><div class="asset-cell__amount">0.02</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$502.90</div><div class="asset-cell__change positive">+2.4%</div></div></div><div class="asset-cell"><div class="asset-cell__icon asset-cell__icon--eth">Ξ</div><div class="asset-cell__info"><div class="asset-cell__name">Ethereum</div><div class="asset-cell__amount-row"><div class="asset-cell__ticker">ETH</div><div class="asset-cell__amount">0.12</div></div></div><div class="asset-cell__values"><div class="asset-cell__fiat">$312.06</div><div class="asset-cell__change negative">-1.5%</div></div></div></div>
+      <!-- СЕКЦИЯ «ИСТОРИЯ» (свёрнута): строки tx-cell —
+           подробное описание см. на экране «Основной» -->
+      <div class="income-section history-section animate-in stagger-2 collapsed">
+        <div class="income-header">
+          <span class="income-header__title" data-i18n="history">История</span>
+          <span class="income-header__summary income-header__summary--neutral" data-i18n="tx_count" data-count="3">3 операции</span>
+          <span class="income-header__chevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+        </div>
+        <div class="income-body">
+          <div class="card-group">
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--in"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_received">Получено</div><div class="tx-cell__date"><span data-ts="2026-08-25T09:40">25 авг, 09:40</span> · USDT</div></div><div class="tx-cell__values"><div class="tx-cell__amount positive">+750 USDT</div><div class="tx-cell__fiat">$750.00</div></div></div>
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_sent">Отправлено</div><div class="tx-cell__date"><span data-ts="2026-08-12T12:05">12 авг, 12:05</span> · BTC</div></div><div class="tx-cell__values"><div class="tx-cell__amount negative">-0.05 BTC</div><div class="tx-cell__fiat">$1 257.24</div></div></div>
+            <div class="tx-cell"><div class="tx-cell__icon tx-cell__icon--swap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M21 7H9"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12"/></svg></div><div class="tx-cell__info"><div class="tx-cell__type" data-i18n="tx_swap">Обмен</div><div class="tx-cell__date"><span data-ts="2026-08-18T16:20">18 авг, 16:20</span> · USDT → BTC</div></div><div class="tx-cell__values"><div class="tx-cell__amount">1 000 USDT → 0.0398 BTC</div><div class="tx-cell__fiat">$1 000.00</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ============================================================
+         ЭКРАН «НАСТРОЙКИ» (id="screen-settings")
+         Группы строк (settings-group) с заголовками-разделителями:
+           Профиль → Оформление (переключатель темы) →
+           Безопасность (код-пароль, Face ID) →
+           Общие (язык → отдельный экран, о приложении) →
+           Данные (сброс всех данных).
+         ============================================================ -->
+    <div class="screen" id="screen-settings">
+      <div class="nav-bar">
+        <span class="nav-bar__back" data-back><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></span>
+        <span class="nav-bar__title" data-i18n="settings">Настройки</span><span class="nav-bar__action nav-bar__action--lock" title="Кошелёк заблокирован" data-i18n-title="wallet_locked"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span class="nav-bar__action kebab-btn" title="Меню" data-i18n-title="menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></div>
+      <!-- ПРОФИЛЬ: цветная иконка, «Профиль» → «Пользователь», шеврон.
+           В прототипе строка никуда не ведёт -->
+      <div class="settings-group animate-in stagger-1">
+        <div class="settings-item"><div class="settings-item__icon settings-item__icon--blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><span class="settings-item__label" data-i18n="profile">Профиль</span><span class="settings-item__value" data-i18n="user">Пользователь</span><span class="settings-item__chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+      </div>
+      <!-- Заголовок группы «ОФОРМЛЕНИЕ» -->
+      <div class="section-header" data-i18n="appearance">Оформление</div>
+      <div class="settings-group animate-in stagger-2">
+        <!-- ПЕРЕКЛЮЧАТЕЛЬ ТЁМНОЙ ТЕМЫ.
+             input id="theme-toggle" при смене вызывает
+             onchange="WalletApp.toggleTheme()" — app.js вешает класс
+             dark на #phone, синхронизирует этот чекбокс и kebab-меню.
+             Стили переключателя — .toggle в styles.css. -->
+        <div class="settings-item"><div class="settings-item__icon settings-item__icon--purple"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div><span class="settings-item__label" data-i18n="dark_theme">Тёмная тема</span><label class="toggle"><input type="checkbox" id="theme-toggle" onchange="WalletApp.toggleTheme()"><span class="toggle__slider"></span></label></div>
+      </div>
+      <!-- Заголовок группы «БЕЗОПАСНОСТЬ» -->
+      <div class="section-header" data-i18n="security">Безопасность</div>
+      <div class="settings-group animate-in stagger-3">
+        <!-- «Код-пароль»: статус «Включено» и шеврон
+             (переход-заглушка, в прототипе не реализован) -->
+        <div class="settings-item"><div class="settings-item__icon settings-item__icon--green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><span class="settings-item__label" data-i18n="passcode">Код-пароль</span><span class="settings-item__value" data-i18n="enabled">Включено</span><span class="settings-item__chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+        <!-- Face ID / Touch ID: включён и недоступен для выключения
+             (checked disabled) — демонстрация неактивного переключателя -->
+        <div class="settings-item"><div class="settings-item__icon settings-item__icon--green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3"/></svg></div><span class="settings-item__label">Face ID / Touch ID</span><label class="toggle"><input type="checkbox" checked disabled><span class="toggle__slider"></span></label></div>
+      </div>
+      <!-- Заголовок группы «ОБЩИЕ» -->
+      <div class="section-header" data-i18n="general">Общие</div>
+      <div class="settings-group animate-in stagger-4">
+        <!-- «Язык»: текущее значение (id="settings-language-value")
+             обновляет applyLang; data-nav="language" открывает
+             экран выбора языка -->
+        <div class="settings-item" data-nav="language"><div class="settings-item__icon settings-item__icon--gray"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><span class="settings-item__label" data-i18n="language">Язык</span><span class="settings-item__value" id="settings-language-value">Русский</span><span class="settings-item__chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+        <!-- «О приложении»: строка-заглушка без действия -->
+        <div class="settings-item"><div class="settings-item__icon settings-item__icon--orange"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><span class="settings-item__label" data-i18n="about">О приложении</span><span class="settings-item__chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+      </div>
+      <div class="section-header" data-i18n="data">Данные</div>
+      <div class="settings-group animate-in stagger-5">
+        <!-- «Сбросить все данные»: красная строка (инлайн-стиль
+             color:var(--negative)); в прототипе действия нет -->
+        <div class="settings-item"><div class="settings-item__icon settings-item__icon--red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div><span class="settings-item__label" data-i18n="reset_data" style="color:var(--negative)">Сбросить все данные</span></div>
+      </div>
+    </div>
+    <!-- ============================================================
+         ЭКРАН «НОВЫЙ КОШЕЛЁК» (id="screen-add-wallet")
+         Форма: название (ввод), тип кошелька (заглушка), цвет
+         (6 кружков), кнопки «Создать» (disabled) и «Отмена».
+         Открывается с главного экрана (кнопка «+» или пункт меню).
+         ============================================================ -->
+    <div class="screen" id="screen-add-wallet">
+      <!-- Шапка: «Назад» (data-back → goBack), заголовок «Новый кошелёк» -->
+      <div class="nav-bar"><span class="nav-bar__back" data-back><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></span><span class="nav-bar__title" data-i18n="new_wallet">Новый кошелёк</span><span class="nav-bar__action nav-bar__action--lock" title="Кошелёк заблокирован" data-i18n-title="wallet_locked"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span class="nav-bar__action kebab-btn" title="Меню" data-i18n-title="menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></div>
+      <!-- ФОРМА СОЗДАНИЯ КОШЕЛЬКА:
+           • «Название» — настоящее поле ввода (form-item__input);
+             плейсхолдер переводится (data-i18n-placeholder);
+           • «Тип кошелька» — псевдо-поле (текст «Выбрать...»),
+             в прототипе выбор не реализован;
+           • «Цвет» — 6 кружков (color-dot), первый выбран (.selected). -->
+      <div class="form-group animate-in stagger-1">
+        <div class="form-item"><div class="form-item__label" data-i18n="name">Название</div><input class="form-item__input" type="text" placeholder="Например: Основной" data-i18n-placeholder="name_example"></div>
+        <div class="form-item"><div class="form-item__label" data-i18n="wallet_type">Тип кошелька</div><div class="form-item__placeholder" data-i18n="choose">Выбрать...</div></div>
+        <div class="form-item"><div class="form-item__label" data-i18n="color">Цвет</div><div class="color-dots"><span class="color-dot selected" style="background:#2481CC"></span><span class="color-dot" style="background:#34C759"></span><span class="color-dot" style="background:#FF9500"></span><span class="color-dot" style="background:#FF3B30"></span><span class="color-dot" style="background:#AF52DE"></span><span class="color-dot" style="background:#8E8E93"></span></div></div>
+      </div>
+      <!-- «Создать кошелёк»: кнопка неактивна (disabled) — в прототипе
+           нет валидации формы; включится после реализации логики -->
+      <button class="btn-primary animate-in stagger-2" disabled data-i18n="create_wallet">Создать кошелёк</button>
+      <!-- «Отмена»: data-nav="home" — app.js вернёт на главный экран -->
+      <button class="btn-secondary animate-in stagger-3" data-nav="home" data-i18n="cancel">Отмена</button>
+    </div>
+    <!-- ============================================================
+         ЭКРАН «ЯЗЫК» (id="screen-language")
+         Список из 7 языков (lang-item, data-lang="ru/en/...").
+         Названия языков НЕ переводятся — всегда на родном языке.
+         Клик по строке: app.js вызывает setLanguage → applyLang
+         переводит интерфейс и ставит класс selected нужной строке
+         (у неё становится видна галочка settings-item__check).
+         ============================================================ -->
+    <div class="screen" id="screen-language">
+      <div class="nav-bar"><span class="nav-bar__back" data-back><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></span><span class="nav-bar__title" data-i18n="language">Язык</span><span class="nav-bar__action nav-bar__action--lock" title="Кошелёк заблокирован" data-i18n-title="wallet_locked"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span class="nav-bar__action kebab-btn" title="Меню" data-i18n-title="menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></span></div>
+      <!-- Список языков; галочка (settings-item__check) видна только
+           у выбранного языка (класс selected ставит applyLang) -->
+      <div class="settings-group animate-in stagger-1" id="language-list">
+        <div class="settings-item lang-item selected" data-lang="ru"><span class="settings-item__label">Русский</span><span class="settings-item__check"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="settings-item lang-item" data-lang="en"><span class="settings-item__label">English</span><span class="settings-item__check"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="settings-item lang-item" data-lang="zh"><span class="settings-item__label">中文</span><span class="settings-item__check"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="settings-item lang-item" data-lang="de"><span class="settings-item__label">Deutsch</span><span class="settings-item__check"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="settings-item lang-item" data-lang="fr"><span class="settings-item__label">Français</span><span class="settings-item__check"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="settings-item lang-item" data-lang="es"><span class="settings-item__label">Español</span><span class="settings-item__check"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+        <div class="settings-item lang-item" data-lang="it"><span class="settings-item__label">Italiano</span><span class="settings-item__check"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></div>
+      </div>
+    </div>
+
+  </div><!-- /screen-stack -->
+  <!-- ============================================================
+       KEBAB-МЕНЮ (id="kebab-menu") — выпадающий список «⋮».
+       Позиционируется абсолютно под шапкой справа (см. .kebab-menu
+       в styles.css). Открытие/закрытие — класс open
+       (openMenu/closeMenu в app.js); клик мимо меню его закрывает.
+       Пункты:
+       • id="menu-theme" — «Ночной/Дневной режим»: подпись
+         (id="menu-theme-label") и иконка (id="menu-theme-icon")
+         меняются скриптом при переключении темы;
+       • data-nav="settings" — открыть настройки;
+       • data-nav="add-wallet" — экран создания кошелька.
+       ============================================================ -->
+  <div class="kebab-menu" id="kebab-menu">
+    <!-- Пункт смены темы: иконка (луна/солнце) и подпись меняются
+         из toggleTheme(); текст подписи — id="menu-theme-label" -->
+    <div class="menu-item" id="menu-theme">
+      <span class="menu-item__icon" id="menu-theme-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </span>
+      <span class="menu-item__label" id="menu-theme-label">Ночной режим</span>
+    </div>
+    <!-- Пункт «Настройки»: открывает экран настроек -->
+    <div class="menu-item" data-nav="settings">
+      <span class="menu-item__icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </span>
+      <span class="menu-item__label" data-i18n="settings">Настройки</span>
+    </div>
+    <!-- Пункт «Добавить кошелёк»: открывает экран создания -->
+    <div class="menu-item" data-nav="add-wallet">
+      <span class="menu-item__icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </span>
+      <span class="menu-item__label" data-i18n="add_wallet">Добавить кошелёк</span>
+    </div>
+  </div>
+  <!-- ПЛАВАЮЩАЯ КНОПКА «+» (id="fab-add").
+       Видна только на главном экране (showScreen управляет
+       прозрачностью и масштабом). Клик — app.js открывает
+       «Новый кошелёк». aria-label переводится (data-i18n-aria). -->
+  <button class="fab" id="fab-add" aria-label="Добавить кошелёк" data-i18n-aria="add_wallet"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+
+</div><!-- /phone -->
+
+<!-- Логика прототипа: навигация, тема, переводы, часы, чипы.
+     ?v=17 — параметр для сброса кэша при обновлении файла -->
+<script src="js/app.js?v=17"></script>
+</body>
+</html>

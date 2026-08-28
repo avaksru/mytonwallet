@@ -1,0 +1,595 @@
+﻿/* ============================================================
+   Криптокошелёк — прототип интерфейса в стиле Telegram (Android).
+   Дизайн-система: светлая и тёмная темы, все экраны приложения.
+   ------------------------------------------------------------
+   СТРУКТУРА ФАЙЛА:
+     0) CSS-переменные (дизайн-токены) + переопределение для .dark;
+     1) база: сброс стилей, фон страницы, «корпус телефона»;
+     2) статус-бар, навигационная панель, экраны и их состояния;
+     3) карточки: баланс, ячейки кошельков/активов/транзакций;
+     4) настройки, переключатели (toggle), формы, кнопки;
+     5) чипы, kebab-меню, FAB, анимации появления.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   0. ДИЗАЙН-ТОКЕНЫ (CSS-переменные)
+   Все цвета, шрифты, отступы, скругления, тени и длительности
+   анимаций собраны здесь. Компоненты ниже используют их через
+   var(--имя) — смена значения меняет оформление везде сразу.
+   ---------------------------------------------------------- */
+
+/* Токены СВЕТЛОЙ темы (по умолчанию). */
+:root {
+  /* Фоны: основной фон экрана, вторичный (подложки), карточки,
+     всплывающие панели (меню). */
+  --bg-primary: #EFEFF4;
+  --bg-secondary: #F5F5F5;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  /* Фирменный синий (Telegram) и его состояния: наведение,
+     нажатие, полупрозрачная подложка для подсветки. */
+  --accent: #2481CC;
+  --accent-hover: #1B6DB3;
+  --accent-pressed: #155A96;
+  --accent-light: rgba(36, 129, 204, 0.08);
+  /* Четыре уровня текста: основной, вторичный, третичный
+     (подписи), четвертичный (плейсхолдеры, шевроны). */
+  --text-primary: #000000;
+  --text-secondary: #3C3C43;
+  --text-tertiary: #8E8E93;
+  --text-quaternary: #C7C7CC;
+  /* Разделители между строками списков — тонкие полупрозрачные линии */
+  --divider: rgba(60, 60, 67, 0.08);
+  --divider-strong: rgba(60, 60, 67, 0.16);
+  /* Семантические цвета: рост/доход (зелёный), падение (красный),
+     предупреждение (оранжевый) */
+  --positive: #1E7E34;
+  --negative: #FF3B30;
+  --warning: #FF9500;
+  /* Шрифты: основной (системный SF Pro/Roboto) и моноширинный */
+  --font-family: 'SF Pro Display', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', 'Roboto Mono', 'Consolas', monospace;
+  /* Размеры шрифта: дисплей (баланс), заголовок, заголовок строки,
+     основной текст, подписи, мелкий текст */
+  --fs-display: 34px;
+  --fs-headline: 22px;
+  --fs-title: 17px;
+  --fs-body: 15px;
+  --fs-caption: 13px;
+  --fs-small: 11px;
+  /* Насыщенность шрифта: обычная, средняя, полужирная, жирная */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  /* Отступы: от 4 до 32 пикселей */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 16px;
+  --sp-xl: 20px;
+  --sp-2xl: 24px;
+  --sp-3xl: 32px;
+  /* Скругления углов: от 8px до 20px, круглый аватар и «пилюля» */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-avatar: 50%;
+  --radius-pill: 999px;
+  /* Тени карточек (4 уровня) и отдельная тень для FAB */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-fab: 0 4px 20px rgba(36, 129, 204, 0.35);
+  /* Кривые и длительности анимаций */
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  /* Габариты «телефона» и высоты служебных панелей: экран 390×844
+     (iPhone 12/13/14), статус-бар 44px, шапка 44px, нижняя зона 80px,
+     safe-area 34px */
+  --phone-width: 390px;
+  --phone-height: 844px;
+  --statusbar-h: 44px;
+  --navbar-h: 44px;
+  --bottombar-h: 80px;
+  --safe-bottom: 34px;
+}
+
+/* ТЁМНАЯ ТЕМА: класс dark ставит скрипт (app.js → toggleTheme)
+   на контейнер #phone. Переопределяются только «цветовые» токены;
+   размеры и отступы наследуются из :root. */
+.dark {
+  /* Токены тёмной темы: чёрный фон, светлый текст, более мягкий
+     акцентный синий и усиленные тени */
+  --bg-primary: #000000;
+  --bg-secondary: #1C1C1E;
+  --bg-card: #1C1C1E;
+  --bg-elevated: #2C2C2E;
+  --accent: #5BA0E0;
+  --accent-hover: #6FB0E8;
+  --accent-pressed: #4A90D0;
+  --accent-light: rgba(91, 160, 224, 0.12);
+  --text-primary: #FFFFFF;
+  --text-secondary: #EBEBF5;
+  --text-tertiary: #8E8E93;
+  --text-quaternary: #636366;
+  --divider: rgba(84, 84, 88, 0.35);
+  --divider-strong: rgba(84, 84, 88, 0.55);
+  --positive: #34C759; /* в тёмной теме зелёный ярче: тёмно-зелёный плохо читается на тёмном фоне */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-fab: 0 4px 20px rgba(91, 160, 224, 0.35);
+}
+
+/* Сброс стандартных отступов у всех элементов;
+   box-sizing:border-box — ширина считается вместе с padding и border */
+* { margin:0; padding:0; box-sizing:border-box; }
+html { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+/* Страница-«стенд»: серый фон вокруг телефона, телефон по центру */
+body { font-family:var(--font-family); background:#E8E8ED; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; transition:background var(--duration-normal) var(--ease-out); }
+/* Тёмный фон стенда при включённой тёмной теме */
+body.dark-page { background:#111113; }
+
+/* КОРПУС ТЕЛЕФОНА: фиксированные 390×844, скругление 44px,
+   «бампер» нарисован тремя слоями box-shadow. Внутри — колонка:
+   статус-бар, стек экранов; FAB и kebab-меню позиционируются
+   абсолютно относительно корпуса. */
+.phone { position:relative; width:var(--phone-width); height:var(--phone-height); background:var(--bg-primary); border-radius:44px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 0 0 3px #1a1a1a,0 0 0 6px #2d2d2d,0 0 0 8px #1a1a1a,var(--shadow-xl),0 20px 60px rgba(0,0,0,0.3); transition:background var(--duration-normal) var(--ease-out); }
+
+/* На узких экранах (реальный телефон) корпус исчезает:
+   приложение занимает весь экран без рамок и теней */
+@media (max-width:430px) { body { padding:0; background:var(--bg-primary); } body.dark-page { background:#000; } .phone { width:100vw; height:100vh; height:100dvh; border-radius:0; box-shadow:none; } }
+
+/* СТАТУС-БАР — имитация системной строки Android
+   .status-bar        — строка высотой 44px: слева сеть «4G»,
+                        по центру время, справа иконки;
+   .status-bar__time  — часы ЧЧ:ММ; текст обновляет app.js
+                        (updateClock, элемент id="status-time");
+   .status-bar__icons — контейнер SVG-иконок сигнала и батареи. */
+.status-bar { height:var(--statusbar-h); display:flex; align-items:center; justify-content:space-between; padding:0 var(--sp-2xl); background:transparent; color:var(--text-primary); font-size:var(--fs-caption); font-weight:var(--fw-semibold); flex-shrink:0; user-select:none; }
+.status-bar__time { flex:1; text-align:center; }
+.status-bar__icons { display:flex; align-items:center; gap:6px; }
+
+/* НАВИГАЦИОННАЯ ПАНЕЛЬ — шапка каждого экрана
+   .nav-bar         — строка 44px: «Назад», заголовок, действия;
+   .nav-bar__back   — кнопка «←» (в разметке data-back): подсветка
+                      при наведении, «сжатие» при нажатии;
+   .nav-bar__title  — заголовок экрана, занимает всё свободное место;
+   .nav-bar__action — квадратная кнопка-иконка (замок, меню «⋮»)
+                      с теми же состояниями, что и «Назад». */
+.nav-bar { height:var(--navbar-h); display:flex; align-items:center; padding:0 var(--sp-lg); gap:var(--sp-sm); flex-shrink:0; }
+.nav-bar__back { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-sm); cursor:pointer; color:var(--accent); transition:background var(--duration-fast); flex-shrink:0; }
+.nav-bar__back:hover { background:var(--accent-light); }
+.nav-bar__back:active { background:rgba(36,129,204,0.16); transform:scale(0.95); }
+.nav-bar__title { font-size:var(--fs-headline); font-weight:var(--fw-bold); color:var(--text-primary); line-height:1.3; flex:1; }
+.nav-bar__action { width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:var(--radius-sm); cursor:pointer; color:var(--accent); transition:background var(--duration-fast); }
+.nav-bar__action:hover { background:var(--accent-light); }
+.nav-bar__action:active { background:rgba(36,129,204,0.16); transform:scale(0.95); }
+
+/* СТЕК ЭКРАНОВ
+   .screen-stack — контейнер, внутри которого лежат все экраны;
+   .screen       — один экран: абсолютное позиционирование (экраны
+                   лежат стопкой друг на друге), вертикальная
+                   прокрутка, снизу отступ под нижние элементы;
+                   по умолчанию спрятан (сдвинут вправо, прозрачен);
+   .active       — видимый экран (класс ставит app.js в showScreen);
+   .slide-left   — состояние «ушёл влево» при уходе с экрана.
+   Прокрутка у экрана скрыта (::-webkit-scrollbar width:0). */
+.screen-stack { flex:1; position:relative; overflow:hidden; }
+.screen { position:absolute; inset:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; display:flex; flex-direction:column; padding:0 var(--sp-lg) calc(var(--bottombar-h) + var(--sp-sm)); opacity:0; transform:translateX(30px); pointer-events:none; transition:opacity var(--duration-normal) var(--ease-out),transform var(--duration-normal) var(--ease-out); -webkit-overflow-scrolling:touch; }
+.screen.active { opacity:1; transform:translateX(0); pointer-events:auto; }
+.screen.slide-left { opacity:0; transform:translateX(-30px); }
+.screen::-webkit-scrollbar { width:0; }
+/* Дочерние блоки экрана не должны сжиматься (flex-shrink: 0):
+   блоки идут друг под другом, а прокручивается сам экран.
+   Без этого дочерние .card-group (overflow: hidden) схлопываются
+   в нулевую высоту, и карточки «наезжают» друг на друга. */
+.screen > * { flex-shrink: 0; }
+
+
+/* КАРТОЧКА ОБЩЕГО БАЛАНСА (блок вверху главного экрана)
+   .balance-card         — белая карточка с лёгкой тенью;
+   .balance-card__label  — серая надпись «ОБЩИЙ БАЛАНС» капсом;
+   .balance-card__amount — крупная сумма (34px, жирная);
+   .balance-card__change — «пилюля» изменения за 24 часа: зелёная
+                           (positive) или красная (negative), внутри
+                           SVG-стрелка и текст из data-i18n-value. */
+.balance-card { background:var(--bg-card); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:var(--sp-lg); margin:0 0 var(--sp-lg); color:var(--text-primary); position:relative; transition:background var(--duration-normal); }
+.balance-card__label { font-size:var(--fs-caption); font-weight:var(--fw-medium); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:var(--sp-xs); }
+.balance-card__amount { font-size:var(--fs-display); font-weight:var(--fw-bold); letter-spacing:-0.5px; line-height:1.1; margin-bottom:var(--sp-sm); color:var(--text-primary); position:relative; z-index:1; }
+.balance-card__change { display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-caption); font-weight:var(--fw-semibold); padding:4px 10px; border-radius:var(--radius-pill); }
+.balance-card__change.positive { background:rgba(52,199,89,0.12); color:var(--positive); }
+.balance-card__change.negative { background:rgba(255,59,48,0.12); color:var(--negative); }
+.balance-card__change svg { width:12px; height:12px; }
+
+/* ЯЧЕЙКА КОШЕЛЬКА — строка списка на главном экране
+   .wallet-cell             — строка списка; кликабельна целиком
+                              (data-wallet → app.js открывает экран);
+   :first/:last/:only-child — скругляются углы только у крайних
+                              ячеек группы, средние прямоугольные;
+   .wallet-cell:active      — подсветка и лёгкое «сжатие» при нажатии;
+   .wallet-cell+.wallet-cell — тонкий разделитель между ячейками;
+   __avatar (--blue/--green/--orange/--purple/--teal) — круглый значок
+                              44px с градиентом и первой буквой названия;
+   __info > __name / __sub  — название и подпись «N актив(а/ов)»
+                              (число из data-count, форма из словаря);
+   __values > __balance / __crypto — баланс в долларах и (опционально)
+                              примерный эквивалент в криптовалюте. */
+.wallet-cell { display:flex; align-items:center; padding:var(--sp-md) var(--sp-lg); background:var(--bg-card); cursor:pointer; transition:background var(--duration-fast),transform var(--duration-fast); -webkit-tap-highlight-color:transparent; position:relative; overflow:hidden; }
+.wallet-cell:first-child { border-radius:var(--radius-lg) var(--radius-lg) 0 0; }
+.wallet-cell:last-child { border-radius:0 0 var(--radius-lg) var(--radius-lg); }
+.wallet-cell:only-child { border-radius:var(--radius-lg); }
+.wallet-cell:active { background:var(--accent-light); transform:scale(0.985); }
+.wallet-cell::after { content:''; position:absolute; inset:0; background:transparent; transition:background var(--duration-fast); pointer-events:none; }
+.wallet-cell:active::after { background:rgba(36,129,204,0.04); }
+.wallet-cell+.wallet-cell { border-top:0.5px solid var(--divider); }
+.wallet-cell__avatar { width:44px; height:44px; border-radius:var(--radius-avatar); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:var(--fw-bold); font-size:var(--fs-title); color:#FFFFFF; margin-right:var(--sp-md); }
+.wallet-cell__avatar--blue { background:linear-gradient(135deg,#2481CC,#1B6DB3); }
+.wallet-cell__avatar--green { background:linear-gradient(135deg,#34C759,#28A745); }
+.wallet-cell__avatar--orange { background:linear-gradient(135deg,#FF9500,#E68600); }
+.wallet-cell__avatar--purple { background:linear-gradient(135deg,#AF52DE,#8E44AD); }
+.wallet-cell__avatar--teal { background:linear-gradient(135deg,#30D0C0,#1FA9A0); }
+.wallet-cell__info { flex:1; min-width:0; }
+.wallet-cell__name { font-size:var(--fs-title); font-weight:var(--fw-semibold); color:var(--text-primary); line-height:1.3; }
+.wallet-cell__sub { font-size:var(--fs-caption); font-weight:var(--fw-regular); color:var(--text-tertiary); margin-top:1px; }
+.wallet-cell__values { text-align:right; flex-shrink:0; margin-left:var(--sp-md); }
+.wallet-cell__balance { font-size:var(--fs-title); font-weight:var(--fw-semibold); color:var(--text-primary); line-height:1.3; font-variant-numeric:tabular-nums; }
+.wallet-cell__crypto { font-size:var(--fs-caption); font-weight:var(--fw-regular); color:var(--text-tertiary); margin-top:1px; }
+
+/* ЯЧЕЙКА АКТИВА (монеты) — строка списка на экране кошелька
+   .asset-cell        — строка списка (в прототипе не кликабельна);
+   __icon (--btc/--eth/--usdt/--sol/--usdc/--ton) — круглый значок
+                        с фирменным цветом монеты и её символом;
+   __info > __name    — название монеты;
+   __amount-row > __ticker / __amount — тикер и количество монет;
+   __sparkline(-bar .up/.down) — мини-график из вертикальных полосок
+                        (зелёные/красные), высота 20px;
+   __values > __fiat / __change — стоимость в долларах и изменение %. */
+.asset-cell { display:flex; align-items:center; padding:var(--sp-md) var(--sp-lg); background:var(--bg-card); cursor:default; transition:background var(--duration-fast); -webkit-tap-highlight-color:transparent; }
+.asset-cell:first-child { border-radius:var(--radius-lg) var(--radius-lg) 0 0; }
+.asset-cell:last-child { border-radius:0 0 var(--radius-lg) var(--radius-lg); }
+.asset-cell:only-child { border-radius:var(--radius-lg); }
+.asset-cell+.asset-cell { border-top:0.5px solid var(--divider); }
+.asset-cell__icon { width:40px; height:40px; border-radius:var(--radius-avatar); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:var(--fw-bold); font-size:var(--fs-body); margin-right:var(--sp-md); }
+.asset-cell__icon--btc { background:#F7931A; color:#FFF; }
+.asset-cell__icon--eth { background:#627EEA; color:#FFF; }
+.asset-cell__icon--usdt { background:#26A17B; color:#FFF; }
+.asset-cell__icon--sol { background:linear-gradient(135deg,#9945FF,#14F195); color:#FFF; }
+.asset-cell__icon--usdc { background:#2775CA; color:#FFF; }
+.asset-cell__icon--ton { background:#0088CC; color:#FFF; }
+.asset-cell__info { flex:1; min-width:0; }
+.asset-cell__name { font-size:var(--fs-title); font-weight:var(--fw-semibold); color:var(--text-primary); line-height:1.3; }
+.asset-cell__ticker { font-size:var(--fs-caption); font-weight:var(--fw-regular); color:var(--text-tertiary); }
+.asset-cell__sparkline { display:flex; align-items:flex-end; gap:2px; height:20px; margin-top:2px; opacity:0.6; }
+.asset-cell__sparkline-bar { width:2px; border-radius:1px; background:var(--text-tertiary); }
+.asset-cell__sparkline-bar.up { background:var(--positive); }
+.asset-cell__sparkline-bar.down { background:var(--negative); }
+.asset-cell__values { text-align:right; flex-shrink:0; margin-left:var(--sp-md); }
+.asset-cell__amount-row { display:flex; align-items:baseline; gap:5px; }
+.asset-cell__amount { font-size:var(--fs-caption); font-weight:var(--fw-regular); color:var(--text-tertiary); }
+.asset-cell__fiat { font-size:var(--fs-title); font-weight:var(--fw-semibold); color:var(--text-primary); font-variant-numeric:tabular-nums; }
+.asset-cell__change { font-size:var(--fs-small); font-weight:var(--fw-semibold); margin-top:2px; }
+.asset-cell__change.positive { color:var(--positive); }
+.asset-cell__change.negative { color:var(--negative); }
+
+/* ЗАГОЛОВОК СЕКЦИИ («СТЕЙКИНГ», «ОФОРМЛЕНИЕ», «БЕЗОПАСНОСТЬ»…)
+   Серый текст капсом; если заголовок — первый элемент экрана,
+   верхний отступ убирается, чтобы не было лишнего воздуха. */
+.section-header { display:flex; align-items:center; justify-content:space-between; padding:var(--sp-2xl) var(--sp-lg) var(--sp-sm); text-transform:uppercase; font-size:var(--fs-caption); font-weight:var(--fw-semibold); color:var(--text-tertiary); letter-spacing:0.3px; }
+.section-header:first-child { padding-top:0; }
+
+/* ГРУППА КАРТОЧЕК — белая «плашка», объединяющая строки списка
+   (ячейки кошельков, активов, транзакций, строки дохода).
+   overflow:hidden обрезает фон строк по скруглённым углам группы. */
+.card-group { border-radius:var(--radius-lg); overflow:hidden; background:var(--bg-card); box-shadow:var(--shadow-sm); margin-bottom:var(--sp-sm); }
+
+/* FAB — плавающая кнопка «+» (id="fab-add")
+   Прижата к правому нижнему углу экрана. Появление/скрытие
+   управляет app.js (showScreen меняет прозрачность и масштаб
+   инлайн-стилями); здесь заданы переходы и состояния
+   наведения/нажатия. */
+.fab { position:absolute; bottom:var(--sp-2xl); right:var(--sp-lg); width:52px; height:52px; border-radius:var(--radius-lg); background:var(--accent); color:#FFFFFF; display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-fab); cursor:pointer; transition:transform var(--duration-normal) var(--ease-out),opacity var(--duration-normal) var(--ease-out),box-shadow var(--duration-fast),background var(--duration-fast); z-index:10; border:none; outline:none; }
+.fab:hover { transform:scale(1.05); box-shadow:0 6px 24px rgba(36,129,204,0.45); }
+.fab:active { transform:scale(0.93); background:var(--accent-pressed); }
+
+/* НАСТРОЙКИ
+   .settings-group  — карточка-список пунктов (аналог .card-group);
+   .settings-item   — строка: иконка, подпись, значение, шеврон;
+                      нажатие подсвечивает строку;
+   __icon (--blue/--green/--orange/--red/--purple/--gray) — квадратная
+                      цветная иконка 30px слева;
+   __label / __value — название пункта и текущее значение справа;
+   __chevron        — серая стрелка «›» для переходов внутрь. */
+.settings-group { border-radius:var(--radius-lg); overflow:hidden; background:var(--bg-card); box-shadow:var(--shadow-sm); margin-bottom:var(--sp-xl); }
+.settings-item { display:flex; align-items:center; padding:10px var(--sp-lg); min-height:44px; cursor:pointer; transition:background var(--duration-fast); -webkit-tap-highlight-color:transparent; gap:var(--sp-md); }
+.settings-item+.settings-item { border-top:0.5px solid var(--divider); }
+.settings-item:active { background:var(--accent-light); }
+.settings-item__icon { width:30px; height:30px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#FFFFFF; }
+.settings-item__icon--blue { background:#2481CC; }
+.settings-item__icon--green { background:#34C759; }
+.settings-item__icon--orange { background:#FF9500; }
+.settings-item__icon--red { background:#FF3B30; }
+.settings-item__icon--purple { background:#AF52DE; }
+.settings-item__icon--gray { background:#8E8E93; }
+.settings-item__label { flex:1; font-size:var(--fs-title); font-weight:var(--fw-regular); color:var(--text-primary); }
+.settings-item__value { font-size:var(--fs-caption); color:var(--text-tertiary); margin-right:var(--sp-xs); }
+.settings-item__chevron { color:var(--text-quaternary); display:flex; flex-shrink:0; }
+
+/* ПЕРЕКЛЮЧАТЕЛЬ (iOS-style toggle)
+   .toggle           — контейнер 51×31px; сам input скрыт (opacity:0);
+   __slider          — «дорожка»: серая, при :checked — синяя;
+   __slider::before  — белый кружок 27px; при :checked сдвигается
+                       вправо (translateX(20px));
+   input:disabled    — неактивный переключатель полупрозрачный. */
+.toggle { position:relative; width:51px; height:31px; flex-shrink:0; }
+.toggle input { opacity:0; width:0; height:0; }
+.toggle__slider { position:absolute; inset:0; background:var(--divider-strong); border-radius:var(--radius-pill); cursor:pointer; transition:background var(--duration-fast); }
+.toggle__slider::before { content:''; position:absolute; width:27px; height:27px; top:2px; left:2px; background:#FFFFFF; border-radius:50%; transition:transform var(--duration-fast) var(--ease-out); box-shadow:0 1px 3px rgba(0,0,0,0.15); }
+.toggle input:checked+.toggle__slider { background:var(--accent); }
+.toggle input:checked+.toggle__slider::before { transform:translateX(20px); }
+.toggle input:disabled+.toggle__slider { opacity:0.4; cursor:not-allowed; }
+
+/* ФОРМА СОЗДАНИЯ КОШЕЛЬКА (экран «Новый кошелёк»)
+   .form-group / .form-item — карточка с полями и разделителями;
+   __label            — серая подпись поля капсом;
+   __input            — настоящее поле ввода без рамки (название);
+   __placeholder      — «псевдо-поле» без ввода (тип кошелька);
+   .color-dots / .color-dot — кружки выбора цвета кошелька;
+                        .selected — с синей рамкой (выбранный);
+   .btn-primary       — главная синяя кнопка (disabled — приглушена;
+                        в прототипе кнопка всегда неактивна);
+   .btn-secondary     — кнопка без фона («Отмена»). */
+.form-group { border-radius:var(--radius-lg); overflow:hidden; background:var(--bg-card); box-shadow:var(--shadow-sm); margin-bottom:var(--sp-xl); }
+.form-item { padding:var(--sp-md) var(--sp-lg); }
+.form-item+.form-item { border-top:0.5px solid var(--divider); }
+.form-item__label { font-size:var(--fs-caption); font-weight:var(--fw-medium); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.3px; margin-bottom:var(--sp-xs); }
+.form-item__placeholder { font-size:var(--fs-title); font-weight:var(--fw-regular); color:var(--text-quaternary); padding:var(--sp-sm) 0; }
+.form-item__input { font-size:var(--fs-title); font-weight:var(--fw-regular); color:var(--text-primary); background:transparent; border:none; outline:none; width:100%; padding:var(--sp-sm) 0; font-family:var(--font-family); }
+.form-item__input::placeholder { color:var(--text-quaternary); }
+.color-dots { display:flex; gap:var(--sp-md); padding:var(--sp-sm) 0; }
+.color-dot { width:32px; height:32px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:border-color var(--duration-fast),transform var(--duration-fast); }
+.color-dot:active { transform:scale(0.9); }
+.color-dot.selected { border-color:var(--accent); }
+.btn-primary { display:flex; align-items:center; justify-content:center; height:50px; background:var(--accent); color:#FFFFFF; font-size:var(--fs-title); font-weight:var(--fw-semibold); border:none; border-radius:var(--radius-lg); cursor:pointer; width:100%; transition:background var(--duration-fast),transform var(--duration-fast),box-shadow var(--duration-fast); box-shadow:var(--shadow-md); -webkit-tap-highlight-color:transparent; }
+.btn-primary:hover { background:var(--accent-hover); }
+.btn-primary:active { background:var(--accent-pressed); transform:scale(0.97); box-shadow:var(--shadow-sm); }
+.btn-primary:disabled { opacity:0.4; cursor:not-allowed; box-shadow:none; }
+.btn-secondary { display:flex; align-items:center; justify-content:center; height:50px; background:transparent; color:var(--accent); font-size:var(--fs-title); font-weight:var(--fw-semibold); border:none; border-radius:var(--radius-lg); cursor:pointer; width:100%; transition:background var(--duration-fast),transform var(--duration-fast); }
+.btn-secondary:active { background:var(--accent-light); transform:scale(0.97); }
+
+/* ПУСТОЕ СОСТОЯНИЕ — заглушка «здесь пока ничего нет»:
+   круглая иконка, заголовок и серое описание по центру. */
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:var(--sp-3xl) var(--sp-2xl); text-align:center; gap:var(--sp-sm); }
+.empty-state__icon { width:64px; height:64px; border-radius:var(--radius-avatar); background:var(--accent-light); display:flex; align-items:center; justify-content:center; color:var(--accent); margin-bottom:var(--sp-sm); }
+.empty-state__title { font-size:var(--fs-title); font-weight:var(--fw-semibold); color:var(--text-primary); }
+.empty-state__desc { font-size:var(--fs-caption); color:var(--text-tertiary); max-width:240px; }
+
+/* БЕЙДЖ — маленькая «пилюля» со счётчиком/меткой (голубая подложка) */
+.badge { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; font-size:var(--fs-small); font-weight:var(--fw-semibold); border-radius:var(--radius-pill); background:var(--accent-light); color:var(--accent); }
+
+/* РАЗДЕЛИТЕЛЬ — тонкая линия 0.5px на всю ширину с отступами */
+.divider-row { height:0.5px; background:var(--divider); margin:0 var(--sp-lg); }
+
+/* ПЛАВАЮЩИЙ ПЕРЕКЛЮЧАТЕЛЬ ТЕМЫ — квадратная кнопка в правом
+   верхнем углу (вспомогательный элемент прототипа) */
+.theme-toggle-fab { position:absolute; top:var(--sp-lg); right:var(--sp-lg); width:36px; height:36px; border-radius:var(--radius-sm); background:var(--bg-card); display:flex; align-items:center; justify-content:center; cursor:pointer; border:0.5px solid var(--divider); color:var(--text-primary); transition:background var(--duration-fast),transform var(--duration-fast); z-index:5; }
+.theme-toggle-fab:active { background:var(--accent-light); transform:scale(0.93); }
+
+/* АНИМАЦИИ ПОЯВЛЕНИЯ
+   fadeInUp    — блок поднимается на 12px и проявляется;
+   pulse       — плавное мигание прозрачности (индикаторы);
+   .animate-in — включает анимацию у блока при показе экрана;
+   .stagger-1…6 — задержки 0–250 мс для каскадного появления
+                 элементов (карточка за карточкой). */
+@keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+.animate-in { animation:fadeInUp var(--duration-slow) var(--ease-out) both; }
+.stagger-1 { animation-delay:0ms; }
+.stagger-2 { animation-delay:50ms; }
+.stagger-3 { animation-delay:100ms; }
+.stagger-4 { animation-delay:150ms; }
+.stagger-5 { animation-delay:200ms; }
+.stagger-6 { animation-delay:250ms; }
+
+/* СТРОКА ЧИПОВ — вкладки-фильтры кошельков (как папки в Telegram)
+   .chips-bar           — горизонтальная лента: собственный скроллбар
+                          скрыт, тач-прокрутка включена (touch-action:
+                          pan-x), отрицательные поля растягивают ленту
+                          на всю ширину экрана в обход его паддинга;
+   .scrollable/.dragging — курсоры grab/grabbing (ставит app.js);
+   .spread/.compact/.compact-x — режимы адаптивной раскладки, которыми
+                          управляет layoutChipsBar() в app.js: spread —
+                          разложить на всю ширину, compact и compact-x —
+                          уплотнить, если чипы не помещаются. */
+.chips-bar {
+  display: flex;
+  gap: 6px;
+  margin: 0 calc(-1 * var(--sp-lg));
+  padding: 4px var(--sp-lg) 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-x;
+}
+.chips-bar::-webkit-scrollbar { display: none; }
+.chips-bar.scrollable { cursor: grab; }
+.chips-bar.dragging { cursor: grabbing; }
+/* Адаптивная раскладка (классами управляет layoutChipsBar() в app.js):
+   spread    — чипов мало: разложить равномерно на всю ширину;
+   compact   — строка не влезает: плотнее отступы и паддинги;
+   compact-x — минимально разумная плотность; не влезло — прокрутка */
+.chips-bar.spread { justify-content: space-between; }
+.chips-bar.compact { gap: 4px; }
+/* ЧИП — «пилюля» с названием кошелька; .active — голубая подложка
+   и синий текст (активная вкладка); :active — эффект нажатия. */
+.chips-bar.compact .chip { padding: 6px 10px; }
+.chips-bar.compact-x { gap: 2px; }
+.chips-bar.compact-x .chip { padding: 6px 7px; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  user-select: none;
+  transition: background var(--duration-fast), color var(--duration-fast), transform var(--duration-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.chip:active { transform: scale(0.95); background: var(--accent-light); }
+.chip.active { background: var(--accent-light); color: var(--accent); font-weight: var(--fw-semibold); }
+
+/* СЧЁТЧИК внутри чипа — круглая метка с числом;
+   у активного чипа становится синей. */
+.chip__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--text-tertiary);
+  color: #fff;
+  font-size: var(--fs-small);
+  font-weight: var(--fw-bold);
+  transition: background var(--duration-fast);
+}
+.chip.active .chip__badge { background: var(--accent); }
+
+/* KEBAB-МЕНЮ — выпадающий список «⋮» (как в Telegram)
+   .kebab-menu    — панель под шапкой справа; по умолчанию скрыта
+                    (прозрачна, сжата к верхнему правому углу,
+                    pointer-events:none); открытие — класс .open,
+                    который ставит app.js (openMenu/closeMenu);
+   .open          — плавно проявляется и «раскрывается» из угла;
+   .menu-item     — строка меню: иконка + подпись; нажатие —
+                    подсветка и лёгкое сжатие;
+   __icon/__label — серая иконка слева, подпись занимает остаток. */
+.kebab-menu {
+  position: absolute;
+  top: calc(var(--statusbar-h) + var(--navbar-h) + 4px);
+  right: var(--sp-lg);
+  min-width: 210px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), 0 12px 40px rgba(0, 0, 0, 0.18);
+  padding: 6px;
+  z-index: 50;
+  opacity: 0;
+  transform: scale(0.85) translateY(-8px);
+  transform-origin: top right;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+}
+.kebab-menu.open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-md);
+  padding: 10px var(--sp-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-regular);
+  transition: background var(--duration-fast), transform var(--duration-fast);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.menu-item:active { background: var(--accent-light); transform: scale(0.98); }
+.menu-item__icon { color: var(--text-tertiary); display: flex; flex-shrink: 0; }
+.menu-item__label { flex: 1; }
+
+/* СЕКЦИЯ «ДОХОД» / «ИСТОРИЯ» (сворачиваемая)
+   .income-section — обёртка секции;
+   .income-header  — строка-заголовок: название, итог справа и шеврон;
+                     клик по ней (обрабатывает app.js) переключает
+                     класс collapsed у секции;
+   __title         — название капсом («ДОХОД», «ИСТОРИЯ»);
+   __summary       — итог зелёным («+$… за год»); модификатор --neutral
+                     делает его серым (счётчик у «Истории»);
+   __chevron       — стрелка: в свёрнутой секции повёрнута на -90°;
+   .income-body    — содержимое: в свёрнутой секции max-height:0 и
+                     нулевая прозрачность — плавное складывание;
+   .income-row     — строка «период → сумма и проценты»;
+   __amount.positive/.negative — зелёная/красная сумма. */
+.income-section { margin:0 0 var(--sp-lg); }
+.income-header { display:flex; align-items:center; gap:var(--sp-sm); padding:var(--sp-xs) var(--sp-sm) var(--sp-sm); cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; border-radius:var(--radius-sm); }
+.income-header:active { opacity:0.7; }
+.income-header__title { font-size:var(--fs-caption); font-weight:var(--fw-semibold); color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.3px; }
+.income-header__summary { margin-left:auto; font-size:var(--fs-caption); font-weight:var(--fw-semibold); color:var(--positive); font-variant-numeric:tabular-nums; }
+.income-header__chevron { color:var(--text-tertiary); display:flex; transition:transform var(--duration-normal) var(--ease-out); }
+.income-section.collapsed .income-header__chevron { transform:rotate(-90deg); }
+.income-body { max-height:1000px; overflow:hidden; opacity:1; transition:max-height var(--duration-normal) var(--ease-out), opacity var(--duration-fast); }
+.income-section.collapsed .income-body { max-height:0; opacity:0; }
+.income-row { display:flex; align-items:center; justify-content:space-between; padding:10px var(--sp-lg); min-height:44px; background:var(--bg-card); transition:background var(--duration-normal); }
+.income-row+.income-row { border-top:0.5px solid var(--divider); }
+.income-row__label { font-size:var(--fs-title); color:var(--text-primary); }
+.income-row__values { text-align:right; display:flex; flex-direction:column; gap:1px; }
+.income-row__amount { font-size:var(--fs-title); font-weight:var(--fw-semibold); font-variant-numeric:tabular-nums; }
+.income-row__amount.positive { color:var(--positive); }
+.income-row__amount.negative { color:var(--negative); }
+.income-row__pct { font-size:var(--fs-caption); color:var(--text-tertiary); }
+
+/* Уважаем системную настройку «уменьшить анимации»: всё двигается мгновенно */
+@media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; } }
+
+/* ЯЧЕЙКА ТРАНЗАКЦИИ — строка в секции «История»
+   .tx-cell           — строка: значок, тип и дата, суммы справа;
+   __icon (--in/--out/--swap/--stake) — круглый значок типа операции:
+                        пополнение зелёное, отправка красная, обмен
+                        синее, стейкинг оранжевое;
+   __info > __type / __date — «Получено/Отправлено/…» и дата
+                        (текст в span[data-ts] форматирует app.js);
+   __values > __amount / __fiat — сумма в монете (положительная
+                        зелёным, отрицательная красным) и в долларах. */
+.tx-cell { display:flex; align-items:center; padding:10px var(--sp-lg); background:var(--bg-card); transition:background var(--duration-normal); }
+.tx-cell:first-child { border-radius:var(--radius-lg) var(--radius-lg) 0 0; }
+.tx-cell:last-child { border-radius:0 0 var(--radius-lg) var(--radius-lg); }
+.tx-cell:only-child { border-radius:var(--radius-lg); }
+.tx-cell+.tx-cell { border-top:0.5px solid var(--divider); }
+.tx-cell__icon { width:36px; height:36px; border-radius:var(--radius-avatar); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-right:var(--sp-md); }
+.tx-cell__icon--in { background:rgba(52,199,89,0.12); color:var(--positive); }
+.tx-cell__icon--out { background:rgba(255,59,48,0.12); color:var(--negative); }
+.tx-cell__icon--swap { background:var(--accent-light); color:var(--accent); }
+.tx-cell__icon--stake { background:rgba(255,149,0,0.12); color:var(--warning); }
+.tx-cell__info { flex:1; min-width:0; }
+.tx-cell__type { font-size:var(--fs-title); font-weight:var(--fw-medium); color:var(--text-primary); line-height:1.3; }
+.tx-cell__date { font-size:var(--fs-caption); color:var(--text-tertiary); margin-top:1px; }
+.tx-cell__values { text-align:right; flex-shrink:0; margin-left:var(--sp-md); }
+.tx-cell__amount { font-size:var(--fs-body); font-weight:var(--fw-semibold); color:var(--text-primary); font-variant-numeric:tabular-nums; line-height:1.3; }
+.tx-cell__amount.positive { color:var(--positive); }
+.tx-cell__amount.negative { color:var(--negative); }
+.tx-cell__fiat { font-size:var(--fs-caption); color:var(--text-tertiary); margin-top:1px; }
+
+/* Серая (нейтральная) сводка в шапке секции — счётчик операций у «Истории» */
+.income-header__summary--neutral { color:var(--text-tertiary); }
+
+/* СПИСОК ЯЗЫКОВ (экран «Язык» в настройках)
+   .settings-item__check — галочка справа; по умолчанию скрыта;
+   .lang-item.selected   — у выбранного языка галочка становится
+                           видимой (класс ставит applyLang в app.js). */
+.settings-item__check { color:var(--accent); display:flex; flex-shrink:0; opacity:0; transition:opacity var(--duration-fast); }
+.lang-item.selected .settings-item__check { opacity:1; }
